@@ -1,0 +1,45 @@
+{
+	"info" : {
+		"title" : "Iran and Syria"
+	},
+   	"xscale": {
+   	  "name" : "date",
+   	  "type" : "Date",
+   	  "format" : "m/d/y",
+   	  "dates_to_tick" : [1,16],
+   	  "skip_after_tick" : 0
+   	},
+   	"yscales": {
+		"Iran" : {
+	  		"type" : "F",
+			"name" : "Iran",
+	  		"label" : "US/Iraeli Attack on Iran",
+      		"min": 0,
+    		"max": 70, 
+	      	"interval": 10,
+		   	"color" : "#990000",
+		   	"tags" : {
+   				"4/23/12" : {
+   					"name" : "Obama imposes new sanctions on Iran, Syria",
+   					"peg" : "Iran",
+   					"url" : "http://news.yahoo.com/obama-targets-iran-syria-sanctions-150754726.html"
+   				},
+   				"5/25/12" : {
+   					"name" : "UN finds traces of suspicious uranium in Iran",
+   					"peg" : "Iran",
+   					"url" : "http://news.yahoo.com/iaea-finds-higher-grade-uranium-trace-iran-sources-150555175.html"
+   				}
+   			}
+   		},
+   	 	"Syria" : {
+	  		"type" : "F",
+			"name" : "Syria",
+	  		"label" : "Assad regime falls",
+      		"min": 20,
+    		"max": 70, 
+	      	"interval": 10,
+		   	"color" : "#FC9706"
+      	 }
+   	}, 
+	"values" : "data/war.csv"
+}
