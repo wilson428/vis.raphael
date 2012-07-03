@@ -1,9 +1,21 @@
 // Raphael Maps v0.1a
+
+//states requiring inset box
 var small_states = ["MA", "RI", "CT", "NJ", "DE", "MD", "DC"],
+
+//object handling drawing of actual shape and resulting object
 state = function(paper, info) {
-	var ctr, x, y, label,
-		shape = paper.path(info.coords).attr({'fill' : "#FFF", "stroke-opacity" : 0}).scale(0.6, 0.6, 0, 0).translate(10, 75);
-		paper.path(info.coords).attr({"stroke" : "#999"}).scale(0.6, 0.6, 0, 0).translate(10, 75);
+	var ctr,
+		x,
+		y,
+		label,
+		shape,
+		outline;
+	
+	//state shape
+	shape = paper.path(info.coords).attr({'fill' : "#FFF", "stroke-opacity" : 0}).scale(0.6, 0.6, 0, 0).translate(10, 75);
+	//outline redrawn overtop. This is to keep opacity of stroke as opacity of state changes
+	outline = paper.path(info.coords).attr({"stroke" : "#999"}).scale(0.6, 0.6, 0, 0).translate(10, 75);
 
 	//labels for small state boxes
 	shape.tooltip('<strong>{{name}}</strong>', info, 400);
@@ -31,23 +43,24 @@ state = function(paper, info) {
 				label.attr({ "fill" : guess_text_color(color, 80) });
 			}
 		},
-		append: function (datum, html) {
+		append: function (datum, override) {
 			//add properties of data to state objects if not already present, like a prototype
-			//it's generally wise to clear() the data points when starting new map
-			//TO DO: boolean OVERRIDE to determine whether to overwrite existing binds if conflict
+			//override determines whether to overwrite existing binds if conflict
+			//TO DO: Make clear() to clear out data points when starting new map
 			for (var d in datum) {
-				info[d] = datum[d];
+				if (!info.hasOwnProperty(d) || override === true) {
+					info[d] = datum[d];
+				}
 			}
+		},
+		add_tip: function(html) {
 			shape.tooltip(html, info, 400);
 			if (typeof(label) !== "undefined") {
 				label.tooltip(html, info, 400);			
 			}
-
-		},
-		addTip: function() {}
+		}
 	};
 },
-
 map = (function () {
 	var states;	
 	//call this once in a closure
@@ -62,13 +75,12 @@ map = (function () {
 	}, "text");
 	//constructor
 	
-	
 	return function (opts) {
 		if (typeof(opts) === "undefined" || typeof(opts.name) === "undefined") {
 			return;
 		}
 		var paper = Raphael(opts.name, 600, 500),
-		roster = {},
+		roster = {"abbr" : {}, "name" : {}},
 		c,
 		info,
 		binder = typeof(opts.binder) !== "undefined" ? opts.binder : "abbr";
@@ -86,19 +98,41 @@ map = (function () {
 
 		for (c = 0; c < states.length; c += 1) {
 			info = states[c];
-			roster[info[binder]] = state(paper, info);
+			//useful to have keys for both state names and abbreviations
+			roster["abbr"][info["abbr"]] = roster["name"][info["name"]] = state(paper, info);
 		}
+		
 		return {
 			color: function (index, col, op) {
-				roster[index].color(col, op);
+				//detect whether abbr or state name is used as index
+				if (index.length > 2) {
+					roster["name"][index].color(col, op);
+				} else {
+					roster["abbr"][index].color(col, op);				
+				}
 			},
 			get_states: function () {
 				return roster;			
 			},
-			bind: function (data, html) {
+			bind: function (data, override) {
+				if (!override) { override = false; }
+
 				for (c in data) {
 					if (data.hasOwnProperty(c)) {
-						roster[data[c][binder]].append(data[c], html);	
+						//console.log(data[c]);
+						//detect whether abbr or state name is used as index
+						if (c.length > 2) {
+							roster["name"][c].append(data[c], override);
+						} else {
+							roster["abbr"][c].append(data[c], override);
+						}
+					}
+				}
+			},
+			tooltip: function (html) {
+				for (c in roster["abbr"]) {
+					if (roster["abbr"].hasOwnProperty(c)) {
+						roster["abbr"][c].add_tip(html);
 					}
 				}
 			}
