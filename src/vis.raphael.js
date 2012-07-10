@@ -57,10 +57,35 @@ function guess_text_color (rgb, threshold) {
 	return "#000";
 }
 
+function makepath(coords, reverse) {
+	var path = "", c;
 
-function logN (N, base) {
-	base = typeof (base) !== "undefined" ? base : 10;
-	return Math.log(N) / Math.log(base);
+	if (reverse) {
+		for (c = coords.length - 1; c >= 0; c -= 1) {
+			if (c === coords.length - 1) {
+				path += "M" + coords[c].x + "," + coords[c].y;			
+			} else {
+				path += "L" + coords[c].x + "," + coords[c].y;
+			}
+		}
+	} else {
+		for (c = 0; c < coords.length; c += 1) {
+			if (c === 0) {
+				path += "M" + coords[c].x + "," + coords[c].y;
+			} else {
+				path += "L" + coords[c].x + "," + coords[c].y;
+			}
+		}
+	}	
+	return path;
+}
+
+function endpoint(coords, reverse) {
+	if (reverse) {
+		return coords[coords.length - 1].x + "," + coords[coords.length - 1].y;
+	} else {
+		return coords[0].x + "," + coords[0].y;
+	}	
 }
 
 // probably a better way to calculate sub intervals
@@ -83,10 +108,10 @@ function guess_interval (N) {
 function get_min_max (range, index) {
 	var min, max, c;
 	for (c = 0; c < range.length; c += 1) {
-		if (typeof(min) === "undefined" || parseInt(range[c][index], 10) < min) {
+		if (parseInt(range[c][index], 10) && (typeof(min) === "undefined" || parseInt(range[c][index], 10) < min)) {
 			min = parseInt(range[c][index], 10);
 		}
-		if (typeof(max) === "undefined" || parseInt(range[c][index], 10) > max) {
+		if (parseInt(range[c][index], 10) && (typeof(max) === "undefined" || parseInt(range[c][index], 10) > max)) {
 			max = parseInt(range[c][index], 10);
 		}
 	}
@@ -104,6 +129,85 @@ function getXPos(e, divide) {
 function getYPos(e) {
 	return e.clientY + document.body.scrollTop + document.documentElement.scrollTop-15;
 }
+
+//make data object parseable by visualization
+/*  {
+		values: [{a: 1, b:0}, {a:2, b: 50}],
+		metadata: [a:{}, b:{}]
+	}
+*/	
+
+function make_data_object(info) {
+	var column_names, series;
+	
+	//if info is array, assume it's the data itself
+	//if array, assume filepath
+	if ($.isArray(info) || typeof(i) === "string") {
+		info = {
+			values: info
+		};
+	}
+	
+	if (!info.values) {
+		return;
+	}
+
+	//if info.values is a string, assume filepath and load it
+	if (typeof (info.values) === "string") {
+		$.ajax({
+			url: info.values,
+			dataType: "text",
+			async: false,
+			success: function (csv) {
+				csv = csv_to_object(csv, ",");
+				column_names = csv.columns;
+				info.values = csv.object;
+			}
+		});
+	}
+
+	//Here we fill out the metadata object, guessing when user hasn't specified desires
+	if (!info.metadata) {
+		info.metadata = {};
+	}
+
+	//scan through properties in first data item, add to metadata if need be
+	for (inf in info.values[0]) {
+		if (info.values[0].hasOwnProperty(inf)) {
+			if (!info.metadata[inf]) {
+				info.metadata[inf] = {};
+			}
+			if (!info.metadata[inf].name) {
+				info.metadata[inf].name = inf;
+			}
+			if (!info.metadata[inf].label) {
+				info.metadata[inf].label = inf;
+			}
+		}
+	}
+	
+	//fill out max/min/interval
+	for (inf in info.values[0]) {
+		if (info.values[0].hasOwnProperty(inf)) {
+			var series = info.metadata[inf];
+			if (typeof(series.min) === "undefined" || typeof(series.max) === "undefined") {
+				range = get_min_max(info.values, inf);
+				series.min = typeof (series.min) !== "undefined" ? series.min : range.min;
+				series.max = typeof (series.max) !== "undefined" ? series.max : range.max;
+			}
+			if (typeof (series.color) === "undefined") {
+				//idea: Randomly choose color set from kuler or somewhere
+				series.color = "rgb(" + randInt(256) + "," + randInt(256) + "," + randInt(256) + ")";
+			}
+		}
+	}
+	
+	//since info updated by reference, we can return this for future use
+	//(It's useful to remember the order of the columns)
+	return column_names;
+}
+
+
 
 //make tooltip div
 $('<div/>', {
