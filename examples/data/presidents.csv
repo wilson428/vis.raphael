@@ -1,0 +1,19 @@
+id	type	label	start	end	status	color
+ww1	widespan	WWI	1917	1918	war
+ww2	widespan	WWII	1941	1945	war
+korea	widespan	Korea	1950	1953	war
+vietnam	widespan	Vietnam	1965	1973	war
+kennedy	span	Kennedy	1917	1963	president
+johnson	span	Johnson	1908	1973	president
+nixon	span	Nixon	1913	1994	president
+ford	span	Ford	1913	2006	president
+carter	span	Carter	1924	present	president
+reagan	span	Reagan	1911	2004	president
+bush	span	Bush	1924	present	president
+dukakis	span	Dukakis	1933	present	candidate
+clinton	span	Clinton	1946	present	president
+dole	span	Dole	1923	present	candidate
+bush2	span	Bush	1946	present	president
+kerry	span	Kerry	1943	present	candidate
+obama	span	Obama	1961	present	president
+romney	span	Romney	1947	present	candidate
