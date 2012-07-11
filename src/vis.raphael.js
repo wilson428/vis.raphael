@@ -1,3 +1,6 @@
+// Raphael Vis v0.11a
+// Data object creator now here, not in charts.vis
+
 Raphael.vis = {
 	//for conversion
 	month_abbr: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
@@ -206,8 +209,6 @@ function make_data_object(info) {
 	//(It's useful to remember the order of the columns)
 	return column_names;
 }
-
-
 
 //make tooltip div
 $('<div/>', {

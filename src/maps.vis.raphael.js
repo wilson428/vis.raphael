@@ -1,4 +1,5 @@
-// Raphael Maps v0.1a
+// Raphael Maps v0.11
+// Can bind to either name or abbr, combine datasets with optional override
 
 //states requiring inset box
 var small_states = ["MA", "RI", "CT", "NJ", "DE", "MD", "DC"],
@@ -11,11 +12,12 @@ state = function(paper, info) {
 		label,
 		shape,
 		outline;
-	
+
+	//outline drawn first. This is to keep opacity of stroke as opacity of state changes
+	//makes more sense to draw second, but this interrupts mouseovers
+	outline = paper.path(info.coords).attr({"stroke" : "#999"}).scale(0.6, 0.6, 0, 0).translate(10, 75);
 	//state shape
 	shape = paper.path(info.coords).attr({'fill' : "#FFF", "stroke-opacity" : 0}).scale(0.6, 0.6, 0, 0).translate(10, 75);
-	//outline redrawn overtop. This is to keep opacity of stroke as opacity of state changes
-	outline = paper.path(info.coords).attr({"stroke" : "#999"}).scale(0.6, 0.6, 0, 0).translate(10, 75);
 
 	//labels for small state boxes
 	shape.tooltip('<strong>{{name}}</strong>', info, 400);
@@ -70,7 +72,7 @@ map = (function () {
 		//url: '../../../../codebase/vis.raphael/trunk/src/data/states.csv',
 		async: false,
 		success: function(d) {
-			states = csv_to_object(d, '\t');		
+			states = csv_to_object(d, '\t').object;		
 		}
 	}, "text");
 	//constructor
@@ -116,7 +118,6 @@ map = (function () {
 			},
 			bind: function (data, override) {
 				if (!override) { override = false; }
-
 				for (c in data) {
 					if (data.hasOwnProperty(c)) {
 						//console.log(data[c]);
