@@ -6,80 +6,82 @@
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
 <head>
   <meta charset="utf-8">
+
   <!-- Use the .htaccess and remove these lines to avoid edge case issues. More info: h5bp.com/i/378 -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>Raphael Map</title>
+
+  <title>Stack chart example</title>
   <meta name="description" content="">
+
   <!-- Mobile viewport optimized: h5bp.com/viewport -->
   <meta name="viewport" content="width=device-width">
+
   <!-- Place favicon.ico and apple-touch-icon.png in the root directory: mathiasbynens.be/notes/touch-icons -->
-  <link rel="stylesheet" href="http://c354786.r86.cf1.rackcdn.com/style.css" />
+
+  <link rel="stylesheet" href="../../base/css/style.css">
   <!-- More ideas for your <head> here: h5bp.com/d/head-Tips -->
+
   <!-- All JavaScript at the bottom, except this Modernizr build. Modernizr enables HTML5 elements & feature detects for optimal performance. Create your own custom Modernizr build: www.modernizr.com/download/ -->
-  <script src="http://c335977.r77.cf1.rackcdn.com/modernizr-2.5.3.min.js"></script>
+  <script src="../../base/js/libs/modernizr-2.5.3.min.js"></script>
 </head>
 <body>
   <!-- Prompt IE 6 users to install Chrome Frame. Remove this if you support IE 6. chromium.org/developers/how-tos/chrome-frame-getting-started -->
   <!--[if lt IE 7]><p class=chromeframe>Your browser is <em>ancient!</em> <a href="http://browsehappy.com/">Upgrade to a different browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to experience this site.</p><![endif]-->
-  <header></header>
+  <header>
+  </header>
+
   <div role="main">
 	<div id="canvas"></div>
   </div>
-  <footer></footer>
+  <footer>
+  </footer>
+
+  <!-- JavaScript at the bottom for fast page loading -->
+
   <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if offline -->
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
   <script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.2.min.js"><\/script>')</script>
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
   
   <!-- scripts concatenated and minified via build script -->
+  <!--<script src="../../../templates/trunk/js/plugins.js"></script>-->
+
   <script src="../../base/js/script.js"></script>
-  <script src="http://c335977.r77.cf1.rackcdn.com/raphael.2.1.0-min.js"></script>
-
-  <!--
-  <script src="http://c354786.r86.cf1.rackcdn.com/script.0.1a.js"></script>
-  <script src="../../../deploy/vis.raphael.js"></script>
-  <script src="../../../deploy/maps.raphael.js"></script>
-  -->
-
+  <script src="../../base/js/libs/raphael-2.1.0.min.js"></script>
+  <script src="../../base/js/script.js"></script>
   <script src="../src/vis.raphael.js"></script>
-  <script src="../src/maps.vis.raphael.js"></script>
+  <script src="../src/charts.vis.raphael.js"></script>
+  <script src="../src/stacks.charts.vis.raphael.js"></script>
 
   <script type="text/javascript">
-  	$(document).ready(function () {
-		var unemp;
-		$.ajax({
-			url: 'data/unemployment.csv',
-			async: false,
-			success: function(d) {
-				unemp = csv_to_object(d, ",", "state").object;
-			}
-		});
+	var info = {
+		values: "data/elections.csv",
+		xscale: {
+			name: "year",
+			type: "Date",
+			format: "m/d/yy",
+			output: "yy",
+			dates_to_tick: 1,
+		},
+		datasets: ["Black", "Hispanic"]
+	};
 
-		$.get('data/politics.csv', function(d) {
-			var m = map({ 
-				name : "canvas",
-				title : "David Chalian's Electoral Outlook"
-			});
-			var data = csv_to_object(d, ",", "state").object,
-			c, col, scores = { 'romney' : 0, 'inplay' : 0, 'obama' : 0 },
-			tipcode = "<div>{{name}}<br />{{status}}<br />Electoral votes: {{ev}}</div>";
+	opts = {
+		el: "canvas",
+		x: 20,
+		y: 10,
+		width : 500,
+		height: 300,
+		padding: "75 50 50 50",
+		title: "Demographics",
+		xticks: "TICKS",
+		yticks: "BARS",
+		legend_position: [200, 35, 80, 15],
+		percent: false
+	};
 
-			for (c in data) {
-				if (data.hasOwnProperty(c)) {
-					switch(data[c].status) {
-						case "Solid Republican": col = "#b73537"; scores['romney'] += data[c].ev; break;
-						case "Leaning Republican": col = "#da848f"; scores['romney'] += data[c].ev; break;
-						case "Battleground": col = "#bab7ba"; scores['inplay'] += data[c].ev; break;
-						case "Leaning Democratic": col = "#486a8f"; scores['obama'] += data[c].ev; break;
-						case "Solid Democratic": col = "#1e334e"; scores['obama'] += data[c].ev; break;
-					}
-					m.color(c, col);
-				}
-			}
-			m.bind(data);
-			m.bind(unemp, true);
-			m.tooltip(tipcode);
-		});
- 	});
+	var s = stack(opts, info);
+	
   </script>
 
   <!-- end scripts -->

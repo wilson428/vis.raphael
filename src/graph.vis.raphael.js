@@ -4,10 +4,13 @@ var graph = function(opts, info, xval, yvals, graph_types) {
 	var vis = visualization(opts, info, xval, yvals),
 	c,
 	i,
-	lx,
-	ly,
+	ax,
+	ay,
 	graph,
-	shapes = {};
+	shapes = {},
+	chart_info = vis.get_axes_info(),
+	graph_type,
+	path;
 
 	graph_types = graph_types || {};
 	for (c = 0; c < opts.yvals.length; c += 1) {
@@ -37,45 +40,73 @@ var graph = function(opts, info, xval, yvals, graph_types) {
 		}
 	}
 
-	graph = function () {
-		var graph_type,
-			path,
-			ax,
-			ay,
-			chart_info = vis.get_axes_info();
+	shape = function (path, attrs, n) {
+		paper = vis.get_paper();
+		
+		var s = paper.path(path).attr(attrs),
+			name = n,
+			tracker = paper.ellipse(-10, -10, 5, 5).attr({ fill: info.metadata[name].color, 'stroke-width': 2, 'stroke': "#FFF" }),
+			text = paper.text(-10, -10, "").attr({ 'text-anchor': 'start', 'fill': "#999" });
 
-		for (i = 0; i < opts.yvals.length; i += 1) {
-			graph_type = info.metadata[opts.yvals[i]].graph_type;
-			if (graph_type === "LINE" || graph_type === "FILL") {
-				path = "";
-				for (c = 0; c < info.values.length; c += 1) {
-					ax = Math.round(c * chart_info.xaxis.scale + chart_info.xaxis.position.x + opts.xshift);
-					ay = Math.round(chart_info.yaxis.position.y - (info.values[c][opts.yvals[i]] - chart_info.yaxis.min) * chart_info.yaxis.scale);
-					if (path === "") {
-						path = 'M' + ax + ',' + ay;
-					} else {
-						path += 'L' + ax + ',' + ay;
-					}
+		s.mousemove(function (e) {
+			for (var s in shapes) {
+				if (shapes.hasOwnProperty(s)) {
+					shapes[s].move_tracker(getXPos(e));
 				}
 			}
-			if (graph_type === "FILL") {
-				c -= 1;
-				path += 'L' + (c * chart_info.xaxis.scale + chart_info.xaxis.position.x) + ',' + chart_info.xaxis.position.y;
-				path += 'L' + chart_info.xaxis.position.x + ',' + chart_info.xaxis.position.y;
-				path += 'L' + chart_info.xaxis.position.x + ',' + chart_info.xaxis.position.y - (info.values[0][opts.yvals[i]]-chart_info.min) * chart_info.xaxis.position.scale;
-				attrs = { "fill" : info.metadata[opts.yvals[i]].color, "opacity" : 0.8, "stroke" : info.metadata[opts.yvals[i]].color, "stroke-width" : 2 };
-			} else {
-				attrs = { "stroke" : info.metadata[opts.yvals[i]].color, "stroke-width" : 2, "opacity" : 1, "stroke-opacity" : 1};
-			}			
-			vis.add_shape(vis.make_shape(path, attrs, opts.yvals[i]), opts.yvals[i]);
+		});
+			
+		return {
+			get_shape: function () {
+				return s;
+			},
+			move_tracker: function (tx, calculate) {
+				var c = Math.floor((tx - chart_info.xaxis.position.x) / chart_info.xaxis.scale),
+					ty;
+				if (!calculate) {
+					ty = Math.round(chart_info.yaxis.position.y - (info.values[c][name] - chart_info.yaxis.min) * chart_info.yaxis.scale);	
+				} else {
+					ty = calculate(c, name);
+				}
+				tracker.attr({
+					cx: tx,
+					cy: ty
+				});
+				text.attr({
+					x: tx + 8,
+					y: ty,
+					text: info.values[c][name]					
+				});			
+			}
+		};
+	};
+
+	for (i = 0; i < opts.yvals.length; i += 1) {
+		graph_type = info.metadata[opts.yvals[i]].graph_type;
+		if (graph_type === "LINE" || graph_type === "FILL") {
+			path = "";
+			for (c = 0; c < info.values.length; c += 1) {
+				ax = Math.round(c * chart_info.xaxis.scale + chart_info.xaxis.position.x + opts.xshift);
+				ay = Math.round(chart_info.yaxis.position.y - (info.values[c][opts.yvals[i]] - chart_info.yaxis.min) * chart_info.yaxis.scale);
+				if (path === "") {
+					path = 'M' + ax + ',' + ay;
+				} else {
+					path += 'L' + ax + ',' + ay;
+				}
+			}
 		}
-		
+		if (graph_type === "FILL") {
+			c -= 1;
+			path += 'L' + (c * chart_info.xaxis.scale + chart_info.xaxis.position.x) + ',' + chart_info.xaxis.position.y;
+			path += 'L' + chart_info.xaxis.position.x + ',' + chart_info.xaxis.position.y;
+			path += 'L' + chart_info.xaxis.position.x + ',' + chart_info.xaxis.position.y - (info.values[0][opts.yvals[i]]-chart_info.min) * chart_info.xaxis.position.scale;
+			attrs = { "fill" : info.metadata[opts.yvals[i]].color, "opacity" : 0.8, "stroke" : info.metadata[opts.yvals[i]].color, "stroke-width" : 2 };
+		} else {
+			attrs = { "stroke" : info.metadata[opts.yvals[i]].color, "stroke-width" : 2, "opacity" : 1, "stroke-opacity" : 1};
+		}
+		shapes[opts.yvals[i]] = shape(path, attrs, opts.yvals[i]);
 	}
-	graph();
-	
-	vis.set_axis("y", 0, 110);
-}
-						
+}							
 		/*
 		//decoration
 		if (typeof (specs.decorations) !== "undefined") {

@@ -21,7 +21,6 @@ function visualization(opts, info, xval, yvals) {
         xaxis, //instance
         yaxis,
         xset,
-        shapes = {},
         load_data,
         tick_type,
         ax,
@@ -313,54 +312,6 @@ function visualization(opts, info, xval, yvals) {
 		},
 		get_paper: function () {
 			return paper;
-		},
-		add_shape: function (s, n) {
-			shapes[n] = s;
-		},
-		get_shape: function (n) {
-			return shapes[n].get_shape();
-		},
-		make_shape: function (path, attrs, n) {
-			var s = paper.path(path).attr(attrs),
-				name = n,
-				tracker = paper.ellipse(-10, -10, 5, 5).attr({ fill: info.metadata[name].color, 'stroke-width': 2, 'stroke': "#FFF" }),
-				text = paper.text(-10, -10, "").attr({ 'text-anchor': 'start', 'fill': "#999" }),
-				chart_info = {
-					xaxis: xaxis.get_info(),
-					yaxis: yaxis.get_info()
-				};
-
-			s.mousemove(function (e) {
-				for (var s in shapes) {
-					if (shapes.hasOwnProperty(s)) {
-						shapes[s].move_tracker(getXPos(e));
-					}
-				}
-			});
-			
-			return {
-				get_shape: function () {
-					return s;
-				},
-				move_tracker: function (tx, calculate) {
-					var c = Math.floor((tx - chart_info.xaxis.position.x) / chart_info.xaxis.scale),
-						ty;
-					if (!calculate) {
-						ty = Math.round(chart_info.yaxis.position.y - (info.values[c][name] - chart_info.yaxis.min) * chart_info.yaxis.scale);	
-					} else {
-						ty = calculate(c, name);
-					}
-					tracker.attr({
-						cx: tx,
-						cy: ty
-					});
-					text.attr({
-						x: tx + 8,
-						y: ty,
-						text: info.values[c][name]					
-					});			
-				}
-			};
 		}
 	};
 }

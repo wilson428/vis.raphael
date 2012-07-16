@@ -114,7 +114,7 @@ function get_min_max (range, index) {
 		val,
 		c;
 	for (c = 0; c < range.length; c += 1) {
-		if (typeof(index) !== "undefined") {
+		if (typeof(index) === "undefined") {
 			val = parseInt(range[c], 10);
 		} else {
 			val = parseInt(range[c][index], 10);
@@ -150,22 +150,22 @@ function getYPos(e) {
 
 function make_data_object(info_obj) {
 	var types,
-	formats,
-	series;
+		formats,
+		series;
 
 	//if info_obj is array, assume it's the data itself
 	if ($.isArray(info_obj)) {
-	info_obj = {
-		values: info_obj
-	};
+		info_obj = {
+			values: info_obj
+		};
 	}
-	
+
 	if (!info_obj.values) {
-	return;
+		return;
 	}
 	
 	if (!info_obj.metadata) {
-	info_obj.metadata = {};
+		info_obj.metadata = {};
 	}
 
 	//Here we fill out the object, guessing when user hasn't specified desires
@@ -173,38 +173,39 @@ function make_data_object(info_obj) {
 	//if info_obj.values is a string, assume filepath and load it
 	types = [];
 	if (typeof (info_obj.values) === "string") {
-	$.ajax({
-		url: info_obj.values,
-		dataType: "text",
-		async: false,
-		success: function (csv) {
-		csv = csv_to_object(csv, ",");
-		info_obj.values = csv.object;
-		//(It's useful to remember the order of the columns)
-		info_obj.columns = csv.columns;
-		types = csv.types;
-		},
-		error: function(e) {
-		console.log("Error", e);
-		}
-	});
+		$.ajax({
+			url: info_obj.values,
+			dataType: "text",
+			async: false,
+			success: function (csv) {
+				csv = csv_to_object(csv, ",");
+				info_obj.values = csv.object;
+				//(It's useful to remember the order of the columns)
+				info_obj.columns = csv.columns;
+				types = csv.types;
+			},
+			error: function(e) {
+				console.log("Error", e);
+			}
+		});
 	}
+
 	
 	//scan through properties in first data item, add to metadata if need be
 	for (inf in info_obj.values[0]) {
-	if (info_obj.values[0].hasOwnProperty(inf)) {
-		info_obj.metadata[inf] = info_obj.metadata[inf] || {};
-		info_obj.metadata[inf].name = info_obj.metadata[inf].name || inf;
-		info_obj.metadata[inf].label = info_obj.metadata[inf].label || inf;
-		info_obj.metadata[inf].type = info_obj.metadata[inf].type || types[inf] || typeof(info_obj.values[0][inf]);
-		if (info_obj.metadata[inf].type === "date") {
-		info_obj.metadata[inf].format = info_obj.metadata[inf].format || guess_date_format(info_obj.values[0][inf]);
-		info_obj.metadata[inf].dates_to_tick = info_obj.metadata[inf].dates_to_tick || [1];
-		if (typeof(info_obj.metadata[inf].dates_to_tick) === "string") {
-			info_obj.metadata[inf].dates_to_tick = [info_obj.metadata[inf].dates_to_tick];
+		if (info_obj.values[0].hasOwnProperty(inf)) {
+			info_obj.metadata[inf] = info_obj.metadata[inf] || {};
+			info_obj.metadata[inf].name = info_obj.metadata[inf].name || inf;
+			info_obj.metadata[inf].label = info_obj.metadata[inf].label || inf;
+			info_obj.metadata[inf].type = info_obj.metadata[inf].type || types[inf] || typeof(info_obj.values[0][inf]);
+			if (info_obj.metadata[inf].type === "date") {
+				info_obj.metadata[inf].format = info_obj.metadata[inf].format || guess_date_format(info_obj.values[0][inf]);
+				info_obj.metadata[inf].dates_to_tick = info_obj.metadata[inf].dates_to_tick || [1];
+				if (typeof(info_obj.metadata[inf].dates_to_tick) === "string") {
+					info_obj.metadata[inf].dates_to_tick = [info_obj.metadata[inf].dates_to_tick];
+				}
+			}
 		}
-		}
-	}
 	}
 
 	//fill out max/min/interval
@@ -244,11 +245,11 @@ $('<div/>', {
 //universal methods
 Raphael.el.tooltip = function(html, info, divide) {
 	if (html.replace("{{", "") !== html) {
-	var indexes = html.match(/{{[A-z ]+}}/ig), index, ind, h, cc;
-	for (c = 0; c < indexes.length; c += 1) {
-		ind = indexes[c].replace("{{", "").replace("\}\}", "");
-		html = html.replace(indexes[c], info[ind]);
-	}
+		var indexes = html.match(/{{[A-z ]+}}/ig), index, ind, h, cc;
+		for (c = 0; c < indexes.length; c += 1) {
+			ind = indexes[c].replace("{{", "").replace("\}\}", "");
+			html = html.replace(indexes[c], info[ind]);
+		}
 	}
 	this.mouseover(function(e) {
 		//may want to do a Django-style template later

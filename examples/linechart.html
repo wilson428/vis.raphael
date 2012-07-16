@@ -10,7 +10,7 @@
   <!-- Use the .htaccess and remove these lines to avoid edge case issues. More info: h5bp.com/i/378 -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-  <title>Raphael Boilerplate Template</title>
+  <title>Line chart example</title>
   <meta name="description" content="">
 
   <!-- Mobile viewport optimized: h5bp.com/viewport -->
@@ -18,11 +18,11 @@
 
   <!-- Place favicon.ico and apple-touch-icon.png in the root directory: mathiasbynens.be/notes/touch-icons -->
 
-  <link rel="stylesheet" href="../../../templates/trunk/css/style.css">
+  <link rel="stylesheet" href="../../base/css/style.css">
   <!-- More ideas for your <head> here: h5bp.com/d/head-Tips -->
 
   <!-- All JavaScript at the bottom, except this Modernizr build. Modernizr enables HTML5 elements & feature detects for optimal performance. Create your own custom Modernizr build: www.modernizr.com/download/ -->
-  <script src="../../../templates/trunk/js/libs/modernizr-2.5.3.min.js"></script>
+  <script src="../../base/js/libs/modernizr-2.5.3.min.js"></script>
 </head>
 <body>
   <!-- Prompt IE 6 users to install Chrome Frame. Remove this if you support IE 6. chromium.org/developers/how-tos/chrome-frame-getting-started -->
@@ -46,29 +46,39 @@
   <!-- scripts concatenated and minified via build script -->
   <!--<script src="../../../templates/trunk/js/plugins.js"></script>-->
 
-  <script src="../../../templates/trunk/js/script.js"></script>
-  <script src="../../../templates/trunk/js/libs/raphael-2.1.0.min.js"></script>
-  <script src="../../../templates/trunk/js/script.js"></script>
+  <script src="../../base/js/script.js"></script>
+  <script src="../../base/js/libs/raphael-2.1.0.min.js"></script>
   <script src="../src/vis.raphael.js"></script>
-  <script src="../src/chart.vis.raphael.js"></script>
+  <script src="../src/visualization.vis.raphael.js"></script>
+  <script src="../src/graph.vis.raphael.js"></script>
 
   <script type="text/javascript">
-
-	var paper = new Raphael("canvas", 600, 600);
-
-	var opts = {
-		x : 20,
-		y : 10,
-		width : 500,
-		height: 400,
-		data: "data/war.json",
-		padding : "75 50 50 50",
-		type: "LINE",
-		datasets: ["Iran", "Syria"],
-	   	animation : true,
-		animate_from : "bottom"
+	var info = {
+		values: "data/war.csv",
+	   	animation : false,
+		animate_from : "bottom",
+		metadata: {
+			Syria: {
+				graph_type: "FILL"
+			}
+		}
 	};
-	var c = paper.chart(opts);
+
+	opts = {
+		el: "canvas",
+		x: 20,
+		y: 10,
+		width : 500,
+		height: 300,
+		padding: "75 50 50 50",
+		title: "Odds of war",
+		xticks: "TICKS",
+		yticks: "BARS",
+		graph_type: "LINE"
+	};
+
+	var g = graph(opts, info, "date", ["Syria", "Iran"], { "Iran" : "LINE" });
+	
   </script>
 
   <!-- end scripts -->

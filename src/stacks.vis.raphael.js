@@ -12,13 +12,14 @@ var stack = function (opts, info, xval, yvals) {
         percent = false,
         total,
 		stack,
+		shape,
         shp,
 		chart_info,
         path,
         path_base,
         stack_values = { "total": [], "percent": [] },
 		paths = [],
-		shapes = [],
+		shapes = {},
 		trackers = [];
     
     //need to do this here instead of in make_data_obj bc can't pass primitive by reference (right?)
@@ -89,15 +90,61 @@ var stack = function (opts, info, xval, yvals) {
 		}
 	}
 
-	//console.log(paths);
+	shape = function (path, attrs, n, index) {
+		var paper = chrt.get_paper(),
+			s = paper.path(path).attr(attrs),
+			name = n,
+			tracker = paper.ellipse(-10, -10, 5, 5).attr({ fill: info.metadata[name].color, 'stroke-width': 2, 'stroke': "#FFF" }),
+			text = paper.text(-10, -10, "").attr({ 'text-anchor': 'start', 'fill': "#999" });
 
+		s.mousemove(function (e) {
+			for (var s in shapes) {
+				if (shapes.hasOwnProperty(s)) {
+					shapes[s].move_tracker(getXPos(e));
+				}
+			}
+		});
+			
+		return {
+			get_shape: function () {
+				return s;
+			},
+			move_tracker: function (tx) {
+				var c = Math.round((tx - chart_info.xaxis.position.x) / chart_info.xaxis.scale),
+					ty;
+				tx = c * chart_info.xaxis.scale + chart_info.xaxis.position.x;
+
+				ty = Math.round(chart_info.yaxis.position.y - (stack_values.total[index + 1][c] - chart_info.yaxis.min) * chart_info.yaxis.scale);	
+
+				if (info.values[c][name] === 0) {
+					tracker.hide();
+					text.hide();
+				} else {
+					tracker.show();
+					text.show();
+				}
+
+				tracker.attr({
+					cx: tx,
+					cy: ty
+				});
+				text.attr({
+					x: tx + 8,
+					y: ty,
+					text: info.values[c][name]
+				});
+			},
+			front: function () {
+				tracker.toFront();
+				text.toFront();
+			}
+		};
+	};
+	
 	for (c = 0; c < paths.length - 1; c += 1) {
 		path = makepath(paths[c + 1]) + "L" + endpoint(paths[c], true) + makepath(paths[c], true) + paths[c] + "L" + endpoint(paths[c + 1]);
-		
-		chrt.add_shape(chrt.make_shape(path, {"fill" : info.metadata[opts.yvals[c]].color}, opts.yvals[c]), opts.yvals[c]);
-
-		shp = chrt.get_shape(opts.yvals[c]);
-		
+		shapes[opts.yvals[c]] = shape(path, {"fill" : info.metadata[opts.yvals[c]].color}, opts.yvals[c], c);
+		shp = shapes[opts.yvals[c]].get_shape();
 
 		shp.drag(
 			//move
@@ -128,7 +175,7 @@ var stack = function (opts, info, xval, yvals) {
 			}
 		);
 	}
-	for (i = 0; i < shapes.length; i += 1) {
-		shapes[i].tracker.toFront();
+	for (i = 0; i < opts.yvals.length; i += 1) {
+		shapes[opts.yvals[i]].front();
 	}
 }

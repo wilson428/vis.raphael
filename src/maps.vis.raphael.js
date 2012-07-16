@@ -1,4 +1,4 @@
-// Raphael Maps v0.11
+// Raphael Maps v0.11a
 // Can bind to either name or abbr, combine datasets with optional override
 
 //states requiring inset box
@@ -68,8 +68,8 @@ map = (function () {
 	//call this once in a closure
 	$.ajax({
 		//url: 'http://c339400.r0.cf1.rackcdn.com/states.csv',
-		url : 'data/states.csv', 
-		//url: '../../../../codebase/vis.raphael/trunk/src/data/states.csv',
+		//url : 'data/states.csv', 
+		url: '../../../../code/vis.raphael/src/data/states.csv',
 		async: false,
 		success: function(d) {
 			states = csv_to_object(d, '\t').object;		

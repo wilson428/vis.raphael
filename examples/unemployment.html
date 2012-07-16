@@ -34,12 +34,14 @@
   <script src="http://c354786.r86.cf1.rackcdn.com/script.0.1a.js"></script>
   <script src="http://c335977.r77.cf1.rackcdn.com/raphael.2.1.0-min.js"></script>
 
-  <script src="../../../deploy/vis.raphael.js"></script>
-  <script src="../../../deploy/maps.raphael.js"></script>
+  <script src="../src/vis.raphael.js"></script>
+  <script src="../src/maps.vis.raphael.js"></script>
 
   <!--
   <script src="../src/vis.raphael.js"></script>
-  <script src="../src/maps.raphael.js"></script>
+  <script src="../src/maps.vis.raphael.js"></script>
+  <script src="../../../deploy/vis.raphael.js"></script>
+  <script src="../../../deploy/maps.raphael.js"></script>
   -->
 
   <script type="text/javascript">
@@ -53,6 +55,7 @@
 					["rgb(255, 63, 0)", "Higher than average"]
 				]
 			});
+
 			var data = csv_to_object(d, ",", "abbr"),
 			c, col, op, diff, scores = { 'romney' : 0, 'inplay' : 0, 'obama' : 0 },
 			tooltip = "<div>{{name}}<br />{{rate}} percent unemployment rate</div>";
@@ -64,7 +67,8 @@
 						col = [0, 128, 63];
 						diff *= -1;
 					}
-					op = 0.25 + 0.8 * diff / 6;
+					op = 0 + 1 * diff / 6;
+					//op = 0.25 + 0.8 * diff / 6;
 					//console.log(op);
 
 					m.color(c, col, op);
