@@ -21,6 +21,7 @@ function visualization(opts, info, xval, yvals) {
         xaxis, //instance
         yaxis,
         xset,
+        shapes = {},
         load_data,
         tick_type,
         ax,
@@ -107,30 +108,46 @@ function visualization(opts, info, xval, yvals) {
 					interval: interval
 				};
 			},
-			bind_to_axis: function (info, val) {
-				var top, bottom, left, right, c;
+			get_labels: function () {
+				return {
+					labels: labels,
+					ticks: ticks
+				};
+			},
+			bind_to_axis: function (info, val, mn, mx) {
+				var top,
+					bottom,
+					left,
+					right,
+					c;
 				if (dependency === 'independent') {
 					scale = length / (info.values.length - 0.8); // This cuts off bars
 					inst = info.metadata[val];
-					min = inst.min || opts.xmin;
-					max = inst.max || opts.xmax;
+					//set max + min to specific values, then option values, then native values
+					min = typeof(mn) !== "undefined" && mn !== "auto" ? mn : opts.xmin;
+					max = typeof(mx) !== "undefined" && mx !== "auto" ? mx : opts.xmax;
 
 					//snap to nearest interval
-					if (typeof (opts.ymin) === "undefined") {
+					if (typeof (min) === "undefined") {
 						min = interval * Math.floor(min / interval);
 					}
-					if (typeof (opts.ymax) === "undefined") {
+					if (typeof (max) === "undefined") {
 						max = interval * Math.ceil(max / interval);
 					}
 				} else {
-					min = opts.ymin;
-					max = opts.ymax;
-					if (typeof (min) === "undefined" || typeof (max) === "undefined") {
+					min = typeof(mn) !== "undefined" && mn !== "auto" ? mn : opts.ymin;
+					max = typeof(mx) !== "undefined" && mx !== "auto" ? mx : opts.ymax;
+					if (typeof (min) === "undefined") {
 						//get most extreme max-min for all graphed datasets
 						for (c = 0; c < opts.yvals.length; c += 1) {
 							if (typeof (min) === "undefined" || parseInt(info.metadata[opts.yvals[c]].min, 10) < min) {
 								min = info.metadata[opts.yvals[c]].min;
 							}
+						}
+					}
+					if (typeof (max) === "undefined") {
+						//get most extreme max-min for all graphed datasets
+						for (c = 0; c < opts.yvals.length; c += 1) {
 							if (typeof (max) === "undefined" || parseInt(info.metadata[opts.yvals[c]].max, 10) > max) {
 								max = info.metadata[opts.yvals[c]].max;
 							}
@@ -139,13 +156,13 @@ function visualization(opts, info, xval, yvals) {
 					
 					interval = guess_interval(max - min);
 
-					//snap to nearest interval
-					if (typeof (opts.ymin) === "undefined") {
-						min = interval * Math.floor(min / interval);
-					}
-					if (typeof (opts.ymax) === "undefined") {
-						max = interval * Math.ceil(max / interval);
-					}
+					//snap to nearest interval. Currently does this even with explicit max/min
+					//if (typeof (min) === "undefined")
+					min = interval * Math.floor(min / interval);
+					
+					//if (typeof (max) === "undefined")
+					max = interval * Math.ceil(max / interval);
+					
 					scale = length / (max - min); // This cuts off fills a bit, but we don't lose last bar in return
 				}
 
@@ -154,6 +171,11 @@ function visualization(opts, info, xval, yvals) {
 				} else {
 					tick_type = opts.yticks || "BARS";
 				}
+
+				ticks.remove();
+				ticks.clear();
+				labels.remove();
+				labels.clear();
 
 				if (tick_type === 'BARS' || tick_type === 'TICKS') {
 					if (tick_type === 'BARS') {
@@ -183,8 +205,8 @@ function visualization(opts, info, xval, yvals) {
 								label = label
 									.replace('m', Raphael.vis.month_abbr[d.getMonth()])
 									.replace('d', d.getDate())
-									.replace(/Yy{4}/, d.getFullYear())
-									.replace('yy', "'" + String(d.getFullYear()).substr(2));
+									.replace(/yyyy/, d.getFullYear())
+									.replace('yy', String(d.getFullYear()).substr(2));
 
 								if (dependency === "independent") {
 									ax = c * scale + position.x + opts.xshift;
@@ -226,6 +248,7 @@ function visualization(opts, info, xval, yvals) {
 					if (tick_type === "BARS") {
 						ticks.attr({"stroke" : "#CCC"});
 					}
+					ticks.toBack();
 				}
 			}
 		};
@@ -237,7 +260,6 @@ function visualization(opts, info, xval, yvals) {
 
 	load_data = function (inf, xval, yvals) {
 		inf = make_data_object(inf);
-
 		//check if we've specified which opts.y values to graph.
 		//If not, graph all except first column, which is assumed to be xvals
 				
@@ -276,15 +298,69 @@ function visualization(opts, info, xval, yvals) {
 				yaxis: yaxis.get_info()
 			};
 		},
-		set_axis: function (axis, ds, animate) {
+		get_labels: function () {
+			return {
+				xaxis: xaxis.get_labels(),
+				yaxis: yaxis.get_labels()
+			};
+		},
+		set_axis: function (axis, mn, mx, animate) {
 			if (axis === "x" || axis === "xaxis") {
-				axis.set_mm(ds, animate);
+				xaxis.bind_to_axis(info, opts.xval, mn, mx);
 			} else {
-				axis.set_mm(ds, animate);
+				yaxis.bind_to_axis(inf, opts.yvals, mn, mx);
 			}
 		},
 		get_paper: function () {
 			return paper;
+		},
+		add_shape: function (s, n) {
+			shapes[n] = s;
+		},
+		get_shape: function (n) {
+			return shapes[n].get_shape();
+		},
+		make_shape: function (path, attrs, n) {
+			var s = paper.path(path).attr(attrs),
+				name = n,
+				tracker = paper.ellipse(-10, -10, 5, 5).attr({ fill: info.metadata[name].color, 'stroke-width': 2, 'stroke': "#FFF" }),
+				text = paper.text(-10, -10, "").attr({ 'text-anchor': 'start', 'fill': "#999" }),
+				chart_info = {
+					xaxis: xaxis.get_info(),
+					yaxis: yaxis.get_info()
+				};
+
+			s.mousemove(function (e) {
+				for (var s in shapes) {
+					if (shapes.hasOwnProperty(s)) {
+						shapes[s].move_tracker(getXPos(e));
+					}
+				}
+			});
+			
+			return {
+				get_shape: function () {
+					return s;
+				},
+				move_tracker: function (tx, calculate) {
+					var c = Math.floor((tx - chart_info.xaxis.position.x) / chart_info.xaxis.scale),
+						ty;
+					if (!calculate) {
+						ty = Math.round(chart_info.yaxis.position.y - (info.values[c][name] - chart_info.yaxis.min) * chart_info.yaxis.scale);	
+					} else {
+						ty = calculate(c, name);
+					}
+					tracker.attr({
+						cx: tx,
+						cy: ty
+					});
+					text.attr({
+						x: tx + 8,
+						y: ty,
+						text: info.values[c][name]					
+					});			
+				}
+			};
 		}
 	};
 }
