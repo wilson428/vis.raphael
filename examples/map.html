@@ -60,8 +60,11 @@
 				title : "David Chalian's Electoral Outlook"
 			});
 			var data = csv_to_object(d, ",", "state").object,
-			c, col, scores = { 'romney' : 0, 'inplay' : 0, 'obama' : 0 },
-			tipcode = "<div>{{name}}<br />{{status}}<br />Electoral votes: {{ev}}</div>";
+				c,
+				col,
+				scores = { 'romney' : 0, 'inplay' : 0, 'obama' : 0 },
+				tipcode = "<div>{{name}}<br />{{status}}<br />Electoral votes: {{ev}}</div>",
+				roster;
 
 			for (c in data) {
 				if (data.hasOwnProperty(c)) {

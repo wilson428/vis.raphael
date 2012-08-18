@@ -1,16 +1,19 @@
 // Raphael Charts v0.11a
 
 var graph = function(opts, info, xval, yvals, graph_types) {
+	'use strict'
 	var vis = visualization(opts, info, xval, yvals),
-	c,
-	i,
-	ax,
-	ay,
-	graph,
-	shapes = {},
-	chart_info = vis.get_axes_info(),
-	graph_type,
-	path;
+		c,
+		i,
+		ax,
+		ay,
+		graph,
+		shape,
+		shapes = {},
+		chart_info = vis.get_axes_info(),
+		graph_type,
+		path,
+		attrs;
 
 	graph_types = graph_types || {};
 	for (c = 0; c < opts.yvals.length; c += 1) {
@@ -41,17 +44,22 @@ var graph = function(opts, info, xval, yvals, graph_types) {
 	}
 
 	shape = function (path, attrs, n) {
-		paper = vis.get_paper();
-		
-		var s = paper.path(path).attr(attrs),
+		var paper = vis.get_paper(),
+			s = paper.path(path).attr(attrs),
 			name = n,
 			tracker = paper.ellipse(-10, -10, 5, 5).attr({ fill: info.metadata[name].color, 'stroke-width': 2, 'stroke': "#FFF" }),
-			text = paper.text(-10, -10, "").attr({ 'text-anchor': 'start', 'fill': "#999" });
+			text = paper.text(-10, -10, "").attr({ 'text-anchor': 'start', 'fill': "#999" }),
+			label = paper.rect(-200, -200, 100, 50, 5).attr({ fill: '#E6E6E6', 'stroke-opacity' : 0 }),
+			shadow = label.clone().attr({ fill: '#999', 'stroke-opacity' : 0 });
 
 		s.mousemove(function (e) {
+			var tx = getXPos(e),
+				c = Math.floor((getXPos(e) - chart_info.xaxis.position.x) / chart_info.xaxis.scale),
+				top = get_max_index(info.values[c], opts.yvals);
+
 			for (var s in shapes) {
 				if (shapes.hasOwnProperty(s)) {
-					shapes[s].move_tracker(getXPos(e));
+					shapes[s].move_tracker(c, tx, s === top);
 				}
 			}
 		});
@@ -60,26 +68,60 @@ var graph = function(opts, info, xval, yvals, graph_types) {
 			get_shape: function () {
 				return s;
 			},
-			move_tracker: function (tx, calculate) {
-				var c = Math.floor((tx - chart_info.xaxis.position.x) / chart_info.xaxis.scale),
-					ty;
-				if (!calculate) {
+			move_tracker: function (c, tx, show) {
+				var ty,
 					ty = Math.round(chart_info.yaxis.position.y - (info.values[c][name] - chart_info.yaxis.min) * chart_info.yaxis.scale);	
-				} else {
-					ty = calculate(c, name);
-				}
+
 				tracker.attr({
 					cx: tx,
 					cy: ty
 				});
-				text.attr({
-					x: tx + 8,
-					y: ty,
-					text: info.values[c][name]					
-				});			
-			}
+				
+				if (show) {
+					text.show();
+					label.show();
+					shadow.show();
+
+					label.attr({
+						x: tx,
+						y: ty - label.attr('height')
+					});
+					shadow.attr({
+						x: tx + 2,
+						y: ty - label.attr('height') - 2
+					});
+				
+					//if there's a date output, assume it's a date and convert
+					if (info.metadata[opts.xval].label) {
+						var txt = dateview(info.values[c][opts.xval], info.metadata[opts.xval].label, info.metadata[opts.xval].format); 
+					} else {
+						var txt = info.values[c][opts.xval];
+					}
+					for (i = 0; i < opts.yvals.length; i += 1) {
+						if (!info.metadata[opts.yvals[i]].unit) {
+							info.metadata[opts.yvals[i]].unit = "";
+						}
+						txt += "\n" + info.metadata[opts.yvals[i]].label + ": " + info.values[c][opts.yvals[i]] + info.metadata[opts.yvals[i]].unit;
+					}
+					text.attr({
+						x: tx + 7,
+						y: ty - 27,
+						text: txt
+					});
+				} else {
+					text.hide();
+					label.hide();
+					shadow.hide();
+				}
+			},
+			front: function () {
+				shadow.toFront();
+				label.toFront();
+				text.toFront();
+				tracker.toFront();
+			}		
 		};
-	};
+	}; //shape
 
 	for (i = 0; i < opts.yvals.length; i += 1) {
 		graph_type = info.metadata[opts.yvals[i]].graph_type;
@@ -105,6 +147,9 @@ var graph = function(opts, info, xval, yvals, graph_types) {
 			attrs = { "stroke" : info.metadata[opts.yvals[i]].color, "stroke-width" : 2, "opacity" : 1, "stroke-opacity" : 1};
 		}
 		shapes[opts.yvals[i]] = shape(path, attrs, opts.yvals[i]);
+	}
+	for (i = 0; i < opts.yvals.length; i += 1) {
+		shapes[opts.yvals[i]].front();
 	}
 }							
 		/*

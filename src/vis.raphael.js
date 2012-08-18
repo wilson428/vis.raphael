@@ -43,21 +43,24 @@ function hexToRgb(hex) {
    	//return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
 }
 
-function guess_text_color (rgb, threshold) {
+function guess_text_color (rgb, threshold, op) {
 	if (typeof(rgb) === "string") {
-	vals = hexToRgb(rgb);
+		vals = hexToRgb(rgb);
 	} else {
-	vals = rgb;
+		vals = rgb;
+	}
+	
+	if (typeof(op) === "undefined") {
+		op = 1;
 	}
 
 	//move up and down to adjust level at which text switches to white
 	threshold = typeof(threshold) !== "undefined" ? threshold : 128;
 	var	luminosity = .2126 * parseInt(vals[0]) + 0.7152 * parseInt(vals[1]) + 0.0722 * parseInt(vals[2]);
-	//console.log(luminosity);
-	if (luminosity < threshold) {
-	return "#FFF";
+	if (luminosity / op < threshold) {
+		return "#FFF";
 	}
-	return "#000";
+		return "#000";
 }
 
 function makepath(coords, reverse) {
@@ -108,6 +111,29 @@ function guess_interval (N) {
 	return Math.pow(10, base);
 }
 
+function get_max_index (infobit, yvals) {
+	var max, 
+		maxindex,
+		ib,
+		i;
+
+	if (!yvals) {
+		yvals = [];
+		for (ib in infobit) {
+			if (infobit.hasOwnProperty(ib)) {
+				yvals.push(ib);
+			}
+		}
+	}
+	for (i = 0; i < yvals.length; i += 1) {
+		if (typeof(max) === "undefined" || infobit[yvals[i]] > max) {
+			max = infobit[yvals[i]];
+			maxindex = yvals[i];
+		}
+	}
+	return maxindex;
+}
+
 function get_min_max (range, index) {
 	var min, 
 		max,
@@ -127,6 +153,40 @@ function get_min_max (range, index) {
 		}
 	}
 	return { "min" : min, "max" : max };
+}
+
+
+function bucket (N, info, index) {
+	var mm = get_min_max(info, index),
+		c,
+		val,
+		buckets = [],
+		volumes = [],
+		//step = (mm.max - mm.min) / N;		
+		step = guess_interval(mm.max - mm.min) * 2;
+		mm.min = step * Math.floor(mm.min / step);
+
+	for (c = 0; c < N; c += 1) {
+		volumes.push(0);
+	}
+
+	for (c = 0; c < info.length; c += 1) {
+		if (typeof(index) === "undefined") {
+			val = info[c];
+		} else {
+			val = info[c][index];
+		}
+		info[c].bucket = Math.min(Math.floor((val - mm.min) / step), N - 1);
+		volumes[info[c].bucket] += 1;
+	}
+
+	for (c = 0; c < N; c += 1) {
+		buckets.push({ 
+			start: mm.min + c * step,
+			volume: volumes[c]
+		});
+	}
+	return buckets;
 }
 
 function getXPos(e, divide) {
@@ -178,7 +238,7 @@ function make_data_object(info_obj) {
 			dataType: "text",
 			async: false,
 			success: function (csv) {
-				csv = csv_to_object(csv, ",");
+				csv = csv_to_object(csv, info_obj.delimit || ",");
 				info_obj.values = csv.object;
 				//(It's useful to remember the order of the columns)
 				info_obj.columns = csv.columns;
@@ -242,19 +302,45 @@ $('<div/>', {
 	'filter': 'alpha(opacity=95)'
 }).hide().appendTo($(document.body));
 
+var dateview = function(s, output, format) {
+	if (!format) {
+		format = guess_date_format(s);
+	}
+	var d = $.datepicker.parseDate(format, s);
+	var txt = output
+		.replace('m', Raphael.vis.month_abbr[d.getMonth()])
+		.replace('d', d.getDate())
+		.replace(/yyyy/, d.getFullYear())
+		.replace('yy', String(d.getFullYear()).substr(2));
+	return txt;
+};
+
+var template = function () {
+	
+
+
+
+}
+
 //universal methods
-Raphael.el.tooltip = function(html, info, divide) {
-	if (html.replace("{{", "") !== html) {
-		var indexes = html.match(/{{[A-z ]+}}/ig), index, ind, h, cc;
+Raphael.el.tooltip = function(h, info, divide) {
+	this.html = h;
+	if (this.html.replace("{{", "") !== this.html) {
+		var indexes = this.html.match(/{{[A-z ]+}}/ig), index, ind, h, cc;
 		for (c = 0; c < indexes.length; c += 1) {
 			ind = indexes[c].replace("{{", "").replace("\}\}", "");
-			html = html.replace(indexes[c], info[ind]);
+			if (parseFloat(info[ind]) === parseInt(info[ind], 10)) {
+				this.html = this.html.replace(indexes[c], add_commas(info[ind]));		
+			} else {
+				this.html = this.html.replace(indexes[c], info[ind]);
+			}		
 		}
 	}
+	
 	this.mouseover(function(e) {
 		//may want to do a Django-style template later
 		//re = html.match(/{{([A-Za-z-]+)}}/g);
-		$('#tip').html(html);
+		$('#tip').html(this.html);
 		$('#tip').css("left", getXPos(e, divide)+10).css("top", getYPos(e)+15);
 		$('#tip').show();
 	}).mousemove(function(e) {

@@ -16,7 +16,7 @@ function visualization(opts, info, xval, yvals) {
 
 	//properties (private to object via closure)
 	//TO DO: Allow for opts.el to already by a Raphael paper instance
-	var paper = Raphael(opts.el, opts.width + opts.x, opts.height + opts.y),
+	var paper = Raphael(opts.el, 630, opts.height + opts.y),
         axis, //function definition for axis
         xaxis, //instance
         yaxis,
@@ -62,7 +62,7 @@ function visualization(opts, info, xval, yvals) {
 
 	//title
 	if (typeof (opts.title) !== "undefined" && opts.title !== "") {
-		paper.text(opts.x + 10, opts.y + 35, opts.title).attr({"font-family": "'Convergence', sans-serif", "font-size" : 20, "text-anchor" : "start", "fill" : "#000000", "opacity" : 1 });
+		paper.text(opts.x + 10, opts.y + 50, opts.title).attr({"font-family": "'Convergence', sans-serif", "font-size" : 20, "text-anchor" : "start", "fill" : "#000000", "opacity" : 1 });
 	}
 			
 	// axis object
@@ -152,7 +152,6 @@ function visualization(opts, info, xval, yvals) {
 							}
 						}
 					}
-					
 					interval = guess_interval(max - min);
 
 					//snap to nearest interval. Currently does this even with explicit max/min
@@ -163,6 +162,12 @@ function visualization(opts, info, xval, yvals) {
 					max = interval * Math.ceil(max / interval);
 					
 					scale = length / (max - min); // This cuts off fills a bit, but we don't lose last bar in return
+
+					if (min < 0) {
+						var yy = Math.round(position.y + min * scale);
+						paper.path('M' + position.x + ',' + yy + 'L' + position.right + ',' + yy).attr({"stroke-width" : 1});
+					}
+
 				}
 
 				if (dependency === "independent") {
@@ -261,12 +266,16 @@ function visualization(opts, info, xval, yvals) {
 		inf = make_data_object(inf);
 		//check if we've specified which opts.y values to graph.
 		//If not, graph all except first column, which is assumed to be xvals
-				
+
+		opts.xval = xval || opts.xval || inf.columns[0];
+
+		/*
 		if (xval) {
 			opts.xval = xval;
 		} else {
 			opts.xval = inf.columns[0];
 		}
+		*/
 		if (yvals) {
 			opts.yvals = yvals;
 		} else {
