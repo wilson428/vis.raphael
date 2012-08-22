@@ -299,6 +299,7 @@ $('<div/>', {
 	'font-size': '10pt',
 	'padding': '5px',
 	'opacity': .95,
+	'z-index': 50,
 	'filter': 'alpha(opacity=95)'
 }).hide().appendTo($(document.body));
 
@@ -315,27 +316,28 @@ var dateview = function(s, output, format) {
 	return txt;
 };
 
-var template = function () {
-	
-
-
-
+//very basic model view borrowing Django syntax
+//takes 'html' with {{variable}}, inserts said variable from object 'info'
+var template = function (html, info) {
+	if (html.replace("{{", "") !== html) {
+		var indexes = html.match(/{{[A-z ]+}}/ig),
+			ind,
+			c;
+		for (c = 0; c < indexes.length; c += 1) {
+			ind = indexes[c].replace("{{", "").replace("\}\}", "");
+			if (parseFloat(info[ind]) === parseInt(info[ind], 10)) {
+				html = html.replace(indexes[c], add_commas(info[ind]));		
+			} else {
+				html = html.replace(indexes[c], info[ind]);
+			}		
+		}
+	}
+	return html;
 }
 
 //universal methods
 Raphael.el.tooltip = function(h, info, divide) {
-	this.html = h;
-	if (this.html.replace("{{", "") !== this.html) {
-		var indexes = this.html.match(/{{[A-z ]+}}/ig), index, ind, h, cc;
-		for (c = 0; c < indexes.length; c += 1) {
-			ind = indexes[c].replace("{{", "").replace("\}\}", "");
-			if (parseFloat(info[ind]) === parseInt(info[ind], 10)) {
-				this.html = this.html.replace(indexes[c], add_commas(info[ind]));		
-			} else {
-				this.html = this.html.replace(indexes[c], info[ind]);
-			}		
-		}
-	}
+	this.html = template(h, info);
 	
 	this.mouseover(function(e) {
 		//may want to do a Django-style template later
@@ -349,6 +351,12 @@ Raphael.el.tooltip = function(h, info, divide) {
 		$('#tip').hide();
 	});
 };
+
+/*
+if (!Object.prototype.addtip) {
+	Object.prototype.addtip = function (e) {};
+}
+*/
 
 //https://groups.google.com/forum/?fromgroups#!topic/raphaeljs/9dw-oUnTVAs
 Raphael.el.moveTo = function(x, y) {

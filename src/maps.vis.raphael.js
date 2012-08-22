@@ -13,13 +13,11 @@ state = function(paper, info, tx, ty) {
 		shape,
 		outline,
 		dirty = false;
-
 	//outline drawn first. This is to keep opacity of stroke as opacity of state changes
 	//makes more sense to draw second, but this interrupts mouseovers
 	outline = paper.path(info.coords).attr({"fill" : "#FFFFEE", "stroke" : "#999"}).scale(0.6, 0.6, 0, 0).translate(tx || 10, ty || 75);
 	//state shape
 	shape = paper.path(info.coords).attr({'fill' : "#FFF", "stroke-opacity" : 0}).scale(0.6, 0.6, 0, 0).translate(tx || 10, ty || 75);
-	
 	//labels for small state boxes
 	shape.tooltip('<strong>{{name}}</strong>', info, 400);
 	if (small_states.indexOf(info.abbr) !== -1) {
