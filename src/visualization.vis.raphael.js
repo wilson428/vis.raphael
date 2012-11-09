@@ -4,9 +4,18 @@
 
 function visualization(opts, info, xval, yvals) {
     'use strict';
-	if (typeof (opts) === 'undefined' || typeof (opts.el) === 'undefined') {
+    if (typeof (opts) === 'undefined' || typeof (opts.el) === 'undefined') {
 		return;
 	}
+
+	//dummy data if none provided	
+    if (!info) {
+        info = [{x:0,y:0},{x:100,y:100}];
+        xval = 'x';
+        yvals = ['y'];
+    }	
+	
+	$('body').append("<link rel='stylesheet' id='colorbox-css'  href='http://fonts.googleapis.com/css?family=Arvo' type='text/css' media='all' />");
 	
 	//default dimensions if unspecified
 	if (!opts.x) { opts.x = 0; }
@@ -15,9 +24,13 @@ function visualization(opts, info, xval, yvals) {
 	if (!opts.height) { opts.height = 400; }
 
 	//properties (private to object via closure)
-	//TO DO: Allow for opts.el to already by a Raphael paper instance
-	var paper = Raphael(opts.el, 630, opts.height + opts.y),
-        axis, //function definition for axis
+	if (opts.paper) {
+		var paper = opts.paper;
+	} else {
+		var paper = Raphael(opts.el, 630, opts.height + opts.y);
+	}
+	
+	var axis, //function definition for axis
         xaxis, //instance
         yaxis,
         xset,
@@ -55,14 +68,14 @@ function visualization(opts, info, xval, yvals) {
 
 	//DRAWING
 	//shell + top rule
-	if (typeof (opts.shell) === "undefined" || opts.shell) {
-		paper.rect(opts.x, opts.y, opts.width, opts.height).attr({"stroke" : "#CCCCCC"});
-        paper.path("M " + (opts.x + 10) + "," + (opts.y + 15) + "L" + (opts.x + opts.width - 10) + "," + (opts.y + 15)).attr({"stroke" : "#000000", "stroke-width" : 3});
+	var mat = paper.rect(opts.x, opts.y, opts.width, opts.height).attr({"stroke" : "#CCCCCC", "fill" : "#FFF"});
+	if (typeof opts.shell === "undefined" || opts.shell === 1) {
+	    var rule = paper.path("M " + (opts.x + 10) + "," + (opts.y + 25) + "L" + (opts.x + opts.width - 10) + "," + (opts.y + 25)).attr({"stroke" : "#000000", "stroke-width" : 3});
 	}
-
+	
 	//title
 	if (typeof (opts.title) !== "undefined" && opts.title !== "") {
-		paper.text(opts.x + 10, opts.y + 50, opts.title).attr({"font-family": "'Convergence', sans-serif", "font-size" : 20, "text-anchor" : "start", "fill" : "#000000", "opacity" : 1 });
+		var title = paper.text(opts.x + 10, opts.y + 10, opts.title).attr({"font-family": "'Arvo', serif", "font-size" : '18pt', "font-weight" : "400", "text-anchor" : "start", "fill" : "#000000", "opacity" : 1 });
 	}
 			
 	// axis object
@@ -104,8 +117,12 @@ function visualization(opts, info, xval, yvals) {
 					length: length,
 					min: min,
 					max: max,
+					type: inst.type.toLowerCase() || "",
 					interval: interval
 				};
+			},
+			get_mat: function () {
+				return mat;
 			},
 			get_labels: function () {
 				return {
@@ -113,18 +130,27 @@ function visualization(opts, info, xval, yvals) {
 					ticks: ticks
 				};
 			},
-			bind_to_axis: function (info, val, mn, mx) {
+			bind_to_axis: function (info, val, mn, mx, intv) {
 				var top,
 					bottom,
 					left,
 					right,
 					c;
+					
 				if (dependency === 'independent') {
-					scale = length / (info.values.length - 0.8); // This cuts off bars
+				
 					inst = info.metadata[val];
+
 					//set max + min to specific values, then option values, then native values
-					min = typeof(mn) !== "undefined" && mn !== "auto" ? mn : opts.xmin;
-					max = typeof(mx) !== "undefined" && mx !== "auto" ? mx : opts.xmax;
+					min = typeof(mn) !== "undefined" && mn !== "auto" ? mn : inst.min;
+					max = typeof(mx) !== "undefined" && mx !== "auto" ? mx : inst.max;
+
+					if (inst.type.toLowerCase() !== "date") {
+						interval = intv || inst.interval || opts.xinterval || guess_interval(max - min);
+						scale = length / (max - min); // This cuts off fills a bit, but we don't lose last bar in return
+					} else {				
+						scale = length / (info.values.length - 0.8); // This cuts off bars
+					} 
 
 					//snap to nearest interval
 					if (typeof (min) === "undefined") {
@@ -134,6 +160,8 @@ function visualization(opts, info, xval, yvals) {
 						max = interval * Math.ceil(max / interval);
 					}
 				} else {
+					inst = info.metadata[val];
+				
 					min = typeof(mn) !== "undefined" && mn !== "auto" ? mn : opts.ymin;
 					max = typeof(mx) !== "undefined" && mx !== "auto" ? mx : opts.ymax;
 					if (typeof (min) === "undefined") {
@@ -147,12 +175,12 @@ function visualization(opts, info, xval, yvals) {
 					if (typeof (max) === "undefined") {
 						//get most extreme max-min for all graphed datasets
 						for (c = 0; c < opts.yvals.length; c += 1) {
-							if (typeof (max) === "undefined" || parseInt(info.metadata[opts.yvals[c]].max, 10) > max) {
-								max = info.metadata[opts.yvals[c]].max;
+							if (typeof (max) === "undefined" || parseInt(inst.max, 10) > max) {
+								max = inst.max;
 							}
 						}
 					}
-					interval = guess_interval(max - min);
+					interval = intv || inst.interval || opts.yinterval || guess_interval(max - min);
 
 					//snap to nearest interval. Currently does this even with explicit max/min
 					//if (typeof (min) === "undefined")
@@ -162,12 +190,10 @@ function visualization(opts, info, xval, yvals) {
 					max = interval * Math.ceil(max / interval);
 					
 					scale = length / (max - min); // This cuts off fills a bit, but we don't lose last bar in return
-
 					if (min < 0) {
 						var yy = Math.round(position.y + min * scale);
 						paper.path('M' + position.x + ',' + yy + 'L' + position.right + ',' + yy).attr({"stroke-width" : 1});
 					}
-
 				}
 
 				if (dependency === "independent") {
@@ -225,26 +251,30 @@ function visualization(opts, info, xval, yvals) {
 									}
 									labels.push(paper.text(left - 10, ay, label));
 								}
-							}
-							if (inst.skip_after_tick) {
-								c += inst.skip_after_tick;
+								if (inst.skip_after_tick) {
+									c += inst.skip_after_tick;
+								}
 							}
 						}
 					} else {
-						for (c = 0; c <= (max - min); c += 1) { // <= to be inclusive of top boundary
-							if ((c + min) % interval === 0) {
+						for (c = 0; c <= (max - min); c += interval) { // <= to be inclusive of top boundary
+							if (parseInt(c + min, 10) % interval === 0) {
 								if (dependency === "independent") {
 									ax = c * scale + position.x + opts.xshift;
 									if (c !== 0 || opts.xshift !== 0) { // Looks weird to have a tick under the opts.y-axis
 										ticks.push(paper.path('M' + ax + ',' + bottom + 'L' + ax + ',' + top));
 									}
-									labels.push(paper.text(ax, bottom + 13, add_commas(c + min)));
+									labels.push(paper.text(ax, bottom + 13, parseInt(c + min)));
 								} else {
-									ay = position.y - c * scale;
+									ay = position.y - (c * scale);
 									if (c !== 0 || opts.xshift !== 0) { // Looks weird to have a tick under the opts.y-axis
 										ticks.push(paper.path('M' + left + ',' + ay + 'L' + right + ',' + ay));
 									}
-									labels.push(paper.text(left - 5, ay, add_commas(c + min)).attr({"text-anchor" : "end"}));
+									if (inst.name === "letter") {
+										labels.push(paper.text(left - 5, ay, String.fromCharCode(65 + 25 - c)).attr({"text-anchor" : "end"}));
+									} else {
+										labels.push(paper.text(left - 5, ay, add_commas(c + min)).attr({"text-anchor" : "end"}));
+									}
 								}
 							}
 						}
@@ -252,7 +282,7 @@ function visualization(opts, info, xval, yvals) {
 					if (tick_type === "BARS") {
 						ticks.attr({"stroke" : "#CCC"});
 					}
-					ticks.toBack();
+					//ticks.toBack();
 				}
 			}
 		};
@@ -267,26 +297,18 @@ function visualization(opts, info, xval, yvals) {
 		//check if we've specified which opts.y values to graph.
 		//If not, graph all except first column, which is assumed to be xvals
 
+		if (xval === "") {
+			xval = "object_index";
+		}
 		opts.xval = xval || opts.xval || inf.columns[0];
-
-		/*
-		if (xval) {
-			opts.xval = xval;
-		} else {
-			opts.xval = inf.columns[0];
-		}
-		*/
-		if (yvals) {
-			opts.yvals = yvals;
-		} else {
-			opts.yvals = inf.columns.slice(1);
-		}
+		opts.yvals = yvals || opts.yvals || inf.columns.slice(1);
 		
 		if (typeof (opts.yvals) === 'string') { //else if we've specified one column to graph, make array
 			opts.yvals = [opts.yvals];
 		}
+
 		xaxis.bind_to_axis(inf, opts.xval);
-		yaxis.bind_to_axis(inf, opts.yvals);
+		yaxis.bind_to_axis(inf, opts.yvals[0]);
 		
 		return inf;
 	};
@@ -312,15 +334,51 @@ function visualization(opts, info, xval, yvals) {
 				yaxis: yaxis.get_labels()
 			};
 		},
-		set_axis: function (axis, mn, mx, animate) {
+		set_axis: function (axis, mn, mx, intv) {
 			if (axis === "x" || axis === "xaxis") {
-				xaxis.bind_to_axis(info, opts.xval, mn, mx);
+				xaxis.bind_to_axis(info, opts.xval, mn, mx, intv);
 			} else {
-				yaxis.bind_to_axis(inf, opts.yvals, mn, mx);
+				yaxis.bind_to_axis(info, opts.yvals, mn, mx, intv);
 			}
+		},
+		plot: function (x, y) {
+			var chart_info = {
+				xaxis: xaxis.get_info(),
+				yaxis: yaxis.get_info()
+			};
+			
+			if (chart_info.xaxis.type === "date") {
+				return {
+					x: Math.round(x * chart_info.xaxis.scale + chart_info.xaxis.position.x + opts.xshift),
+					y: Math.round(chart_info.yaxis.position.y - (y - chart_info.yaxis.min) * chart_info.yaxis.scale)
+				};
+			} else {
+				return {
+					x: Math.round((x - chart_info.xaxis.min) * chart_info.xaxis.scale + chart_info.xaxis.position.x + opts.xshift),
+					y: Math.round(chart_info.yaxis.position.y - (y - chart_info.yaxis.min) * chart_info.yaxis.scale)
+				};
+			}
+		},
+		unplot: function (x, y) {
+			var chart_info = {
+				xaxis: xaxis.get_info(),
+				yaxis: yaxis.get_info()
+			};
+			var cx = (x - chart_info.xaxis.position.x - opts.xshift) / chart_info.xaxis.scale + chart_info.xaxis.min,
+				cy = (chart_info.yaxis.position.y - y) / chart_info.yaxis.scale + chart_info.yaxis.min;
+
+			//snap to previous interval. Should be optional for both axes
+			cx = cx - cx % chart_info.xaxis.interval;
+			return {
+				x: Math.round(cx),
+				y: Math.round(cy)
+			}			
 		},
 		get_paper: function () {
 			return paper;
+		},
+		get_mat: function () {
+			return mat;
 		}
 	};
 }

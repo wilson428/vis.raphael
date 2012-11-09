@@ -2,35 +2,23 @@
 // Data object creator now here, not in charts.vis
 
 Raphael.vis = {
-	//for conversion
-	month_abbr: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    //for conversion
+	month_abbr: ["Jan.", "Feb.", "Mar.", "Apr.", "May", "Jun.", "Jul.", "Aug.", "Sep.", "Oct.", "Nov.", "Dec."],
 	month_full: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-	month_days: {"Jan" : 31, "Feb" : 28, "Mar" : 31, "Apr" : 30, "May" : 31, "Jun" : 30, "Jul" : 31, "Aug" : 31, "Sep" : 30, "Oct" : 31, "Nov" : 30, "Dec" : 31},
+	month_days: {"Jan." : 31, "Feb." : 28, "Mar." : 31, "Apr." : 30, "May" : 31, "Jun." : 30, "Jul." : 31, "Aug." : 31, "Sep." : 30, "Oct." : 31, "Nov." : 30, "Dec." : 31},
 	month_nums: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
 
 	// takes 118
 	// returns Apr. 28
 	dayOfYearToDate: function (days) {
-	for (k in month_days) {
-		if (days > months[k])
-		days -= months[k];
-		else
-		return (k + " " + Math.round(days));
-	}
-	return "Error";	
-	},
-
-	// takes 4/28/12
-	// returns Apr. 28, 2012
-	dateToString: function (date, useyear) {
-	ds = date.split('/');
-	m = month_abbr[parseInt(ds[0])-1];
-	y = ds[2];
-	if (y.length == 2)
-		y = '20'+y;
-	if (!useyear)
-		return m+" "+ds[1];
-	return m+" "+ds[1]+", "+y
+		for (k in month_days) {
+			if (days > months[k]) {
+				days -= months[k];
+			} else {
+				return (k + " " + Math.round(days));
+			}
+		}
+		return "Error";	
 	}
 }
 
@@ -88,9 +76,9 @@ function makepath(coords, reverse) {
 
 function endpoint(coords, reverse) {
 	if (reverse) {
-	return coords[coords.length - 1].x + "," + coords[coords.length - 1].y;
+		return coords[coords.length - 1].x + "," + coords[coords.length - 1].y;
 	} else {
-	return coords[0].x + "," + coords[0].y;
+		return coords[0].x + "," + coords[0].y;
 	}	
 }
 
@@ -139,16 +127,18 @@ function get_min_max (range, index) {
 		max,
 		val,
 		c;
-	for (c = 0; c < range.length; c += 1) {
+	//for (c = 0; c < range.length; c += 1) {
+	//we want this to work for large objects as well as arrays
+	for (c in range) {
 		if (typeof(index) === "undefined") {
-			val = parseInt(range[c], 10);
+			val = range[c];
 		} else {
-			val = parseInt(range[c][index], 10);
+			val = range[c][index];
 		}
-		if (val && (typeof(min) === "undefined" || val < min)) {
+		if (typeof val !== "undefined" && (typeof min === "undefined" || val < min)) {
 			min = val;
 		}
-		if (val && (typeof(max) === "undefined" || val > max)) {
+		if (typeof val !== "undefined" && (typeof max === "undefined" || val > max)) {
 			max = val;
 		}
 	}
@@ -245,12 +235,11 @@ function make_data_object(info_obj) {
 				types = csv.types;
 			},
 			error: function(e) {
-				console.log("Error", e);
+				//console.log("Error", e);
 			}
 		});
 	}
 
-	
 	//scan through properties in first data item, add to metadata if need be
 	for (inf in info_obj.values[0]) {
 		if (info_obj.values[0].hasOwnProperty(inf)) {
@@ -270,18 +259,18 @@ function make_data_object(info_obj) {
 
 	//fill out max/min/interval
 	for (inf in info_obj.values[0]) {
-	if (info_obj.values[0].hasOwnProperty(inf)) {
-		var series = info_obj.metadata[inf];
-		if (typeof(series.min) === "undefined" || typeof(series.max) === "undefined") {
-		range = get_min_max(info_obj.values, inf);
-		series.min = typeof (series.min) !== "undefined" ? series.min : range.min;
-		series.max = typeof (series.max) !== "undefined" ? series.max : range.max;
+		if (info_obj.values[0].hasOwnProperty(inf)) {
+			var series = info_obj.metadata[inf];
+			if (typeof(series.min) === "undefined" || typeof(series.max) === "undefined") {
+				range = get_min_max(info_obj.values, inf);
+				series.min = typeof (series.min) !== "undefined" ? series.min : range.min;
+				series.max = typeof (series.max) !== "undefined" ? series.max : range.max;
+			}
+			if (typeof (series.color) === "undefined") {
+				//idea: Randomly choose color set from kuler or somewhere
+				series.color = "rgb(" + randInt(256) + "," + randInt(256) + "," + randInt(256) + ")";
+			}
 		}
-		if (typeof (series.color) === "undefined") {
-		//idea: Randomly choose color set from kuler or somewhere
-		series.color = "rgb(" + randInt(256) + "," + randInt(256) + "," + randInt(256) + ")";
-		}
-	}
 	}
 	return info_obj;
 }
@@ -291,16 +280,16 @@ $('<div/>', {
 	id: 'tip'
 }).css({
 	'position': 'absolute',
-	'width': '200px',
+	'width': 'auto',
 	'height': 'auto',
     'background-color': '#ffffff',
 	'border': '2px solid #999999',
 	'font-family': 'Arial',
 	'font-size': '10pt',
 	'padding': '5px',
-	'opacity': .95,
+	'opacity': .90,
 	'z-index': 50,
-	'filter': 'alpha(opacity=95)'
+	'filter': 'alpha(opacity=90)'
 }).hide().appendTo($(document.body));
 
 var dateview = function(s, output, format) {
@@ -318,15 +307,23 @@ var dateview = function(s, output, format) {
 
 //very basic model view borrowing Django syntax
 //takes 'html' with {{variable}}, inserts said variable from object 'info'
-var template = function (html, info) {
+var template = function (html, info, inst) {
 	if (html.replace("{{", "") !== html) {
-		var indexes = html.match(/{{[A-z ]+}}/ig),
+		var indexes = html.match(/{{[A-z0-9 ]+}}/ig),
 			ind,
 			c;
 		for (c = 0; c < indexes.length; c += 1) {
 			ind = indexes[c].replace("{{", "").replace("\}\}", "");
-			if (parseFloat(info[ind]) === parseInt(info[ind], 10)) {
+			//this way, keys can also be array indices
+			var i = guess_type(String(info[ind]));
+			//console.log(i);
+			//var ind = i[0];
+			if (ind === "date" && inst) {
+				html = html.replace(indexes[c], dateview(info[ind], inst.output, inst.format));
+			} else if (i[1] === "integer") {
 				html = html.replace(indexes[c], add_commas(info[ind]));		
+			} else if (i[1] === "float") {
+				html = html.replace(indexes[c], info[ind]);		
 			} else {
 				html = html.replace(indexes[c], info[ind]);
 			}		
@@ -338,7 +335,6 @@ var template = function (html, info) {
 //universal methods
 Raphael.el.tooltip = function(h, info, divide) {
 	this.html = template(h, info);
-	
 	this.mouseover(function(e) {
 		//may want to do a Django-style template later
 		//re = html.match(/{{([A-Za-z-]+)}}/g);
@@ -347,6 +343,19 @@ Raphael.el.tooltip = function(h, info, divide) {
 		$('#tip').show();
 	}).mousemove(function(e) {
 		$('#tip').css("left", getXPos(e, divide)+10).css("top", getYPos(e)+15);
+	}).mouseout(function(e) {
+		$('#tip').hide();
+	});
+};
+
+Raphael.el.infobox = function(x, y, h, info) {
+	this.html = template(h, info);
+	this.mouseover(function(e) {
+		//may want to do a Django-style template later
+		//re = html.match(/{{([A-Za-z-]+)}}/g);
+		$('#tip').html(this.html);
+		$('#tip').css("left", x).css("top", y);
+		$('#tip').show();
 	}).mouseout(function(e) {
 		$('#tip').hide();
 	});

@@ -6,11 +6,11 @@
 //guess the intrinsic type of a string
 function guess_type(s) {
     if (s.replace(/[0-9\-]+/, "") === "") {
-       	//int
+           //int
        	return [parseInt(s, 10), "integer"];
 	} else if (s.replace(/[0-9\.\-]+/, "") === "") {
     	//float
-       	return [parseFloat(s), "float" ];        
+       	return [parseFloat(s), "float" ];
 	} else if (s.replace(/[0-9\/]+/, "") === "") {
        	//date
 		//TO DO error handling
@@ -73,7 +73,7 @@ for (var c = 0; c < tests.length; c += 1) {
 /* If index is defined, uses as key 	*/
 /* TO DO: detect delimitation 			*/
 function csv_to_object(csv, delimit, index) {
-	var lines = csv.split(/[\r\n]/),
+	var lines = csv.split(/[\r\n]+/g),
 		delimitor = typeof(delimit) !== 'undefined' ? delimit : ",",
 		labels = lines[0].split(delimitor),
 		types = {},
@@ -86,7 +86,10 @@ function csv_to_object(csv, delimit, index) {
 		items,
 		ind;
 
-	//record types
+	//add label for index
+	//labels.push("object_index");
+
+	//record types	
 	for (c = 0; c < labels.length; c += 1) {
 		types[labels[c]] = guess_type(samples[c])[1];
 	}
@@ -99,6 +102,7 @@ function csv_to_object(csv, delimit, index) {
 			for (i = 0; i < items.length; i += 1) {
 				oo[labels[i]] = guess_type(items[i])[0];
 			}
+			oo["object_index"] = c;
 			o.push(oo);
 		}
 	} else {
@@ -116,6 +120,7 @@ function csv_to_object(csv, delimit, index) {
 				}
 				oo[labels[i]] = guess_type(items[i])[0];
 			}
+			oo["object_index"] = c;			
 			o[ind] = oo;
 		}
 	}
