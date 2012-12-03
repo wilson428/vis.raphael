@@ -1,4 +1,4 @@
-/*global Raphael logN csv_to_object guess_date_format*/
+/*global Raphael logN csv_to_object guess_date_format randInt*/
 //for conversion
 var timekeeper = function() {
 	var month_abbr = ["Jan.", "Feb.", "Mar.", "Apr.", "May", "Jun.", "Jul.", "Aug.", "Sep.", "Oct.", "Nov.", "Dec."],
@@ -19,7 +19,7 @@ var timekeeper = function() {
 			return "Error";
 		},
         //assumes YYYY-MM-DD for now
-        dateToDayOfYear: function(date) {
+        dateToDayOfYear: function(date, minyear) {
             var days = 0,
                 parts = date.split("-");
             for (var c = 0; c < parseInt(parts[1], 10) - 1; c += 1) {
@@ -28,10 +28,14 @@ var timekeeper = function() {
             if (parseInt(parts[0], 10) % 4 === 0 && parts[1] >= 3) {
                 days += 1;
             }
-            return days + parseInt(parts[2], 10);
+            if (typeof minyear !== "number") {
+                return days + parseInt(parts[2], 10);
+            } else {
+                return days + parseInt(parts[2], 10) + 365 * (parseInt(parts[0], 10) - minyear);
+            }
         }
 	};
-}
+};
 
 function hexToRgb(hex) {
 	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
