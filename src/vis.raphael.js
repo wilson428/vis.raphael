@@ -1,106 +1,99 @@
-// Raphael Vis v0.11a
-// Data object creator now here, not in charts.vis
+/*global Raphael logN csv_to_object guess_date_format*/
+//for conversion
+var timekeeper = function() {
+	var month_abbr = ["Jan.", "Feb.", "Mar.", "Apr.", "May", "Jun.", "Jul.", "Aug.", "Sep.", "Oct.", "Nov.", "Dec."],
+		month_full = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+		month_days = {"Jan.": 31, "Feb.": 28, "Mar.": 31, "Apr.": 30, "May": 31, "Jun.": 30, "Jul.": 31, "Aug.": 31, "Sep.": 30, "Oct.": 31, "Nov.": 30, "Dec.": 31},
+		month_nums = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-Raphael.vis = {
-    //for conversion
-	month_abbr: ["Jan.", "Feb.", "Mar.", "Apr.", "May", "Jun.", "Jul.", "Aug.", "Sep.", "Oct.", "Nov.", "Dec."],
-	month_full: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-	month_days: {"Jan." : 31, "Feb." : 28, "Mar." : 31, "Apr." : 30, "May" : 31, "Jun." : 30, "Jul." : 31, "Aug." : 31, "Sep." : 30, "Oct." : 31, "Nov." : 30, "Dec." : 31},
-	month_nums: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-
-	// takes 118
-	// returns Apr. 28
-	dayOfYearToDate: function (days) {
-		for (k in month_days) {
-			if (days > months[k]) {
-				days -= months[k];
-			} else {
-				return (k + " " + Math.round(days));
+	return {
+		// takes 118, returns Apr. 28
+		dayOfYearToDate: function (days) {
+			for (var k in month_days) {
+				if (days > month_days[k]) {
+					days -= month_days[k];
+				} else {
+					return (k + " " + Math.round(days));
+				}
 			}
-		}
-		return "Error";	
-	}
+			return "Error";
+		},
+        //assumes YYYY-MM-DD for now
+        dateToDayOfYear: function(date) {
+            var days = 0,
+                parts = date.split("-");
+            for (var c = 0; c < parseInt(parts[1], 10) - 1; c += 1) {
+                days += month_nums[c];
+            }
+            if (parseInt(parts[0], 10) % 4 === 0 && parts[1] >= 3) {
+                days += 1;
+            }
+            return days + parseInt(parts[2], 10);
+        }
+	};
 }
 
 function hexToRgb(hex) {
 	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
-
-	//rgb
-    //var result = /[0-9]+/i.exec(hex);
-   	//return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
+	return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
 }
 
+//Returns black or white for text label over a color, depending on background
 function guess_text_color (rgb, threshold, op) {
-	if (typeof(rgb) === "string") {
-		vals = hexToRgb(rgb);
-	} else {
-		vals = rgb;
-	}
-	
-	if (typeof(op) === "undefined") {
-		op = 1;
-	}
-
+	var vals = typeof rgb !== "string" ? rgb : hexToRgb(rgb);
+	op = typeof op !== "undefined" ? op : 1;
 	//move up and down to adjust level at which text switches to white
-	threshold = typeof(threshold) !== "undefined" ? threshold : 128;
-	var	luminosity = .2126 * parseInt(vals[0]) + 0.7152 * parseInt(vals[1]) + 0.0722 * parseInt(vals[2]);
-	if (luminosity / op < threshold) {
-		return "#FFF";
-	}
-		return "#000";
+	threshold = typeof threshold !== "undefined" ? threshold : 128;
+	var	luminosity = 0.2126 * parseInt(vals[0], 10) + 0.7152 * parseInt(vals[1], 10) + 0.0722 * parseInt(vals[2], 10);
+	return (luminosity / op < threshold) ? "#FFF": "#000";
 }
 
-function makepath(coords, reverse) {
-	var path = "", c;
+//converts an array of x/y coords into SVG-ready path
+//TO DO: Allow for coords to arrive as strings
+function makepath(coords, reverse, scale) {
+    scale = typeof scale !== "undefined" ? scale : 1;
+	var path = "",
+        c;
 
-	if (reverse) {
-	for (c = coords.length - 1; c >= 0; c -= 1) {
-		if (c === coords.length - 1) {
-		path += "M" + coords[c].x + "," + coords[c].y;		
-		} else {
-		path += "L" + coords[c].x + "," + coords[c].y;
-		}
-	}
-	} else {
-	for (c = 0; c < coords.length; c += 1) {
-		if (c === 0) {
-		path += "M" + coords[c].x + "," + coords[c].y;
-		} else {
-		path += "L" + coords[c].x + "," + coords[c].y;
-		}
-	}
-	}	
-	return path;
+    for (c = coords.length - 1; c >= 0; c -= 1) {
+        if (!reverse) {
+            path = path + "L" + coords[c].x * scale + "," + coords[c].y * scale;
+        } else {
+            path = "L" + coords[c].x * scale + "," + coords[c].y * scale + path;
+        }
+    }
+    return "M" + path.substr(1);
 }
 
-function endpoint(coords, reverse) {
-	if (reverse) {
-		return coords[coords.length - 1].x + "," + coords[coords.length - 1].y;
-	} else {
-		return coords[0].x + "," + coords[0].y;
-	}	
+function firstpoint(path) {
+    var first = RegExp(/^L\d+,\d+/);
+    return first.exec(path);
+}
+
+function lastpoint(path) {
+    var last = RegExp(/L\d+,\d+$/);
+    return last.exec(path);
 }
 
 // probably a better way to calculate sub intervals
 function guess_interval (N) {
 	var lg =  logN(N),
-	base = Math.floor(lg) - 1,
-	rem = lg % 1;
+        base = Math.floor(lg) - 1,
+        rem = lg % 1;
 	if (rem > logN(5)) {
-	return 10 * Math.pow(10, base);
+        return 10 * Math.pow(10, base);
 	}
 	if (rem > logN(2.5)) {
-	return 5 * Math.pow(10, base);        
+        return 5 * Math.pow(10, base);
 	}
 	if (rem > 0) {
-	return 2.5 * Math.pow(10, base);        
+        return 2.5 * Math.pow(10, base);
 	}
 	return Math.pow(10, base);
 }
 
 function get_max_index (infobit, yvals) {
-	var max, 
+	var max,
 		maxindex,
 		ib,
 		i;
@@ -123,7 +116,7 @@ function get_max_index (infobit, yvals) {
 }
 
 function get_min_max (range, index) {
-	var min, 
+	var min,
 		max,
 		val,
 		c;
@@ -142,7 +135,7 @@ function get_min_max (range, index) {
 			max = val;
 		}
 	}
-	return { "min" : min, "max" : max };
+	return { "min": min, "max": max };
 }
 
 
@@ -152,7 +145,7 @@ function bucket (N, info, index) {
 		val,
 		buckets = [],
 		volumes = [],
-		//step = (mm.max - mm.min) / N;		
+		//step = (mm.max - mm.min) / N;
 		step = guess_interval(mm.max - mm.min) * 2;
 		mm.min = step * Math.floor(mm.min / step);
 
@@ -171,7 +164,7 @@ function bucket (N, info, index) {
 	}
 
 	for (c = 0; c < N; c += 1) {
-		buckets.push({ 
+		buckets.push({
 			start: mm.min + c * step,
 			volume: volumes[c]
 		});
@@ -179,14 +172,24 @@ function bucket (N, info, index) {
 	return buckets;
 }
 
+function getPos(e, xdiv, ydiv) {
+    var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft,
+        y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop-15;
+
+    return {
+        x: typeof xdiv === "undefined" && x > xdiv ? x - 200 : x,
+        y: typeof ydiv === "undefined" && y > ydiv ? y - 150 : y - 15
+    };
+}
+
 function getXPos(e, divide) {
 	var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
 	if (x > divide) {
-	x -= 230;		
+	x -= 230;
 	}
 	return x;
 }
-	
+
 function getYPos(e) {
 	return e.clientY + document.body.scrollTop + document.documentElement.scrollTop-15;
 }
@@ -196,28 +199,22 @@ function getYPos(e) {
 	values: [{a: 1, b:0}, {a:2, b: 50}],
 	metadata: [a:{}, b:{}]
 	}
-*/	
+*/
 
 function make_data_object(info_obj) {
 	var types,
-		formats,
 		series;
 
 	//if info_obj is array, assume it's the data itself
-	if ($.isArray(info_obj)) {
+	if ($.isArray(info_obj) || !info_obj.values) {
 		info_obj = {
 			values: info_obj
 		};
 	}
 
-	if (!info_obj.values) {
-		return;
-	}
-	
 	if (!info_obj.metadata) {
 		info_obj.metadata = {};
 	}
-
 	//Here we fill out the object, guessing when user hasn't specified desires
 
 	//if info_obj.values is a string, assume filepath and load it
@@ -241,14 +238,21 @@ function make_data_object(info_obj) {
 	}
 
 	//scan through properties in first data item, add to metadata if need be
-	for (inf in info_obj.values[0]) {
-		if (info_obj.values[0].hasOwnProperty(inf)) {
+    for (var first_item in info_obj.values) {
+        if (info_obj.values.hasOwnProperty(first_item)) {
+            first_item = info_obj.values[first_item];
+            break;   
+        }
+    }
+    
+	for (var inf in first_item) {
+		if (first_item.hasOwnProperty(inf)) {
 			info_obj.metadata[inf] = info_obj.metadata[inf] || {};
 			info_obj.metadata[inf].name = info_obj.metadata[inf].name || inf;
 			info_obj.metadata[inf].label = info_obj.metadata[inf].label || inf;
-			info_obj.metadata[inf].type = info_obj.metadata[inf].type || types[inf] || typeof(info_obj.values[0][inf]);
+			info_obj.metadata[inf].type = info_obj.metadata[inf].type || types[inf] || typeof(first_item[inf]);
 			if (info_obj.metadata[inf].type === "date") {
-				info_obj.metadata[inf].format = info_obj.metadata[inf].format || guess_date_format(info_obj.values[0][inf]);
+				info_obj.metadata[inf].format = info_obj.metadata[inf].format || guess_date_format(first_item[inf]);
 				info_obj.metadata[inf].dates_to_tick = info_obj.metadata[inf].dates_to_tick || [1];
 				if (typeof(info_obj.metadata[inf].dates_to_tick) === "string") {
 					info_obj.metadata[inf].dates_to_tick = [info_obj.metadata[inf].dates_to_tick];
@@ -256,13 +260,13 @@ function make_data_object(info_obj) {
 			}
 		}
 	}
-
+    
 	//fill out max/min/interval
-	for (inf in info_obj.values[0]) {
-		if (info_obj.values[0].hasOwnProperty(inf)) {
-			var series = info_obj.metadata[inf];
+	for (inf in first_item) {
+		if (first_item.hasOwnProperty(inf)) {
+			series = info_obj.metadata[inf];
 			if (typeof(series.min) === "undefined" || typeof(series.max) === "undefined") {
-				range = get_min_max(info_obj.values, inf);
+				var range = get_min_max(info_obj.values, inf);
 				series.min = typeof (series.min) !== "undefined" ? series.min : range.min;
 				series.max = typeof (series.max) !== "undefined" ? series.max : range.max;
 			}
@@ -282,7 +286,7 @@ $('<div/>', {
 	'position': 'absolute',
 	'width': 'auto',
 	'height': 'auto',
-    'background-color': '#ffffff',
+	'background-color': '#ffffff',
 	'border': '2px solid #999999',
 	'font-family': 'Arial',
 	'font-size': '10pt',
@@ -321,12 +325,12 @@ var template = function (html, info, inst) {
 			if (ind === "date" && inst) {
 				html = html.replace(indexes[c], dateview(info[ind], inst.output, inst.format));
 			} else if (i[1] === "integer") {
-				html = html.replace(indexes[c], add_commas(info[ind]));		
+				html = html.replace(indexes[c], add_commas(info[ind]));
 			} else if (i[1] === "float") {
-				html = html.replace(indexes[c], info[ind]);		
+				html = html.replace(indexes[c], info[ind]);
 			} else {
 				html = html.replace(indexes[c], info[ind]);
-			}		
+			}
 		}
 	}
 	return html;
@@ -366,6 +370,29 @@ if (!Object.prototype.addtip) {
 	Object.prototype.addtip = function (e) {};
 }
 */
+
+//add easing formula for visual effect of randomness
+Raphael.easing_formulas.rattle = function(n) { 
+        var sign = (Math.random() > 0.5) ? 3 : -3;
+        return Math.random() * (sign);     
+    };
+
+Raphael.el.rattle = function(magnitude, duration, f) {
+    magnitude = typeof magnitude !== "undefined" ? magnitude : 1;
+    duration = typeof duration !== "undefined" ? duration : 1000;
+    
+    
+    //NOTE: Animates along diagonal axis. Should fix to animate independently on x and y axes if possible.
+    var newx = this.matrix.split().dx + magnitude,
+        newy = this.matrix.split().dy - magnitude;        
+    this.animate({transform:"t" + newx + "," + newy}, duration, "rattle", function(e) {
+        //move back to original position
+        this.transform("t" + (newx - magnitude) + "," + (newy - magnitude));
+        if (f) {
+            f();
+        }
+    });    
+};
 
 //https://groups.google.com/forum/?fromgroups#!topic/raphaeljs/9dw-oUnTVAs
 Raphael.el.moveTo = function(x, y) {
