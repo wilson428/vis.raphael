@@ -384,6 +384,9 @@ function visualization(opts, info, xval, yvals) {
 		get_paper: function () {
 			return paper;
 		},
+        get_padding: function () {
+            return opts.padding;  
+        },
 		get_mat: function () {
 			return mat;
 		}
