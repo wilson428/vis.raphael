@@ -3,10 +3,20 @@
 /*global $, Raphael, guess_interval, add_commas, make_data_object*/
 
 function visualization(opts, info, xval, yvals) {
-    'use strict';
+    'use strict';    
     if (typeof (opts) === 'undefined' || typeof (opts.el) === 'undefined') {
 		return;
 	}
+
+    var paper,
+        axis, //function definition for axis
+        xaxis, //instance
+        yaxis,
+        load_data,
+        tick_type,
+        ax,
+        ay,
+        d; //instance
 
 	//dummy data if none provided	
     if (!info) {
@@ -25,20 +35,10 @@ function visualization(opts, info, xval, yvals) {
 
 	//properties (private to object via closure)
 	if (opts.paper) {
-		var paper = opts.paper;
+		paper = opts.paper;
 	} else {
-		var paper = Raphael(opts.el, 630, opts.height + opts.y);
+		paper = Raphael(opts.el, 630, opts.height + opts.y);
 	}
-	
-	var axis, //function definition for axis
-        xaxis, //instance
-        yaxis,
-        xset,
-        load_data,
-        tick_type,
-        ax,
-        ay,
-        d; //instance
 		
 	//shift for data points relative to opts.x axis
 	//useful if aligning line chart to a bar chart, where bar is centered between opts.x values
@@ -69,13 +69,14 @@ function visualization(opts, info, xval, yvals) {
 	//DRAWING
 	//shell + top rule
 	var mat = paper.rect(opts.x, opts.y, opts.width, opts.height).attr({"stroke" : "#CCCCCC", "fill" : "#FFF"});
+    
 	if (typeof opts.shell === "undefined" || opts.shell === 1) {
-	    var rule = paper.path("M " + (opts.x + 10) + "," + (opts.y + 25) + "L" + (opts.x + opts.width - 10) + "," + (opts.y + 25)).attr({"stroke" : "#000000", "stroke-width" : 3});
+	    var rule = paper.path("M " + (opts.x + 10) + "," + (opts.y + 40) + "L" + (opts.x + opts.width - 10) + "," + (opts.y + 40)).attr({"stroke" : "#000000", "stroke-width" : 3});
 	}
 	
 	//title
 	if (typeof (opts.title) !== "undefined" && opts.title !== "") {
-		var title = paper.text(opts.x + 10, opts.y + 10, opts.title).attr({"font-family": "'Arvo', serif", "font-size" : '18pt', "font-weight" : "400", "text-anchor" : "start", "fill" : "#000000", "opacity" : 1 });
+		var title = paper.text(opts.x + 10, opts.y + 22, opts.title).attr({"font-family": "'Arvo', serif", "font-size" : '18pt', "font-weight" : "400", "text-anchor" : "start", "fill" : "#000000", "opacity" : 1 });
 	}
 			
 	// axis object
@@ -136,11 +137,11 @@ function visualization(opts, info, xval, yvals) {
 					left,
 					right,
 					c;
-					
+                    
 				if (dependency === 'independent') {
 				
 					inst = info.metadata[val];
-
+                    
 					//set max + min to specific values, then option values, then native values
 					min = typeof(mn) !== "undefined" && mn !== "auto" ? mn : inst.min;
 					max = typeof(mx) !== "undefined" && mx !== "auto" ? mx : inst.max;
@@ -302,8 +303,8 @@ function visualization(opts, info, xval, yvals) {
 		}
 		opts.xval = xval || opts.xval || inf.columns[0];
 		opts.yvals = yvals || opts.yvals || inf.columns.slice(1);
-		
-		if (typeof (opts.yvals) === 'string') { //else if we've specified one column to graph, make array
+
+        if (typeof (opts.yvals) === 'string') { //else if we've specified one column to graph, make array
 			opts.yvals = [opts.yvals];
 		}
 
@@ -319,6 +320,9 @@ function visualization(opts, info, xval, yvals) {
 
 	//chart methods
 	return {
+        get_info: function() {
+            return info;  
+        },
 		bind: function (info, ds) {
 			load_data(info, ds);
 		},
@@ -359,7 +363,7 @@ function visualization(opts, info, xval, yvals) {
 				};
 			}
 		},
-		unplot: function (x, y) {
+		unplot: function (x, y, snapx) {
 			var chart_info = {
 				xaxis: xaxis.get_info(),
 				yaxis: yaxis.get_info()
@@ -368,11 +372,14 @@ function visualization(opts, info, xval, yvals) {
 				cy = (chart_info.yaxis.position.y - y) / chart_info.yaxis.scale + chart_info.yaxis.min;
 
 			//snap to previous interval. Should be optional for both axes
-			cx = cx - cx % chart_info.xaxis.interval;
+            if (snapx) {
+                cx = cx - cx % chart_info.xaxis.interval;
+            }
+            
 			return {
 				x: Math.round(cx),
 				y: Math.round(cy)
-			}			
+			};			
 		},
 		get_paper: function () {
 			return paper;
